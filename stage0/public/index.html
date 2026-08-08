@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Stage 0 - 全量文本广播</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  h1 { font-size: 20px; }
+  #status { color: #999; font-size: 13px; }
+  textarea { width: 100%; height: 320px; font-size: 16px; line-height: 1.6; padding: 10px; box-sizing: border-box; }
+</style>
+</head>
+<body>
+<h1>Stage 0：全量文本广播</h1>
+<p id="status">连接中…</p>
+<textarea id="editor" placeholder="开两个浏览器标签页，同时快速打字试试"></textarea>
+<script>
+  const editor = document.getElementById('editor');
+  const statusEl = document.getElementById('status');
+  const ws = new WebSocket(`ws://${location.host}`);
+
+  ws.onopen = () => (statusEl.textContent = '已连接');
+  ws.onclose = () => (statusEl.textContent = '已断开');
+
+  // 动作①：自己每次输入（敲一个字、删一个字、粘贴），
+  // 都把【整篇文档】发给服务器
+  editor.addEventListener('input', () => {
+    ws.send(JSON.stringify({ type: 'update', text: editor.value }));
+  });
+
+  // 动作②：收到服务器推来的消息，把【整篇文档】覆盖回来
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+    // 关键问题点②：直接覆盖 value，光标会被拍飞到末尾
+    // 关键问题点③：这一瞬间你刚敲的、还没发出去的字符，会被直接抹掉
+    editor.value = msg.text;
+  };
+</script>
+</body>
+</html>

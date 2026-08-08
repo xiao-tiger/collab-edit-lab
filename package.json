@@ -1,0 +1,9 @@
+{
+  "name": "collab-demo",
+  "private": true,
+  "type": "module",
+  "description": "协同编辑学习 demo：从全量广播到 OT，逐阶段递进",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
