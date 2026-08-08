@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Stage 2 - 版本号 + 定序</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  h1 { font-size: 20px; }
+  #status, #meta { color: #999; font-size: 13px; }
+  #meta b { color: #333; }
+  textarea { width: 100%; height: 240px; font-size: 16px; line-height: 1.6; padding: 10px; box-sizing: border-box; }
+  #log { background: #f6f6f6; border: 1px solid #eee; font-size: 12px; padding: 8px; height: 140px; overflow-y: auto; white-space: pre-wrap; }
+  label { font-size: 13px; color: #555; }
+  #notice { display: none; background: #ffe4e4; color: #c00; border: 1px solid #f5b5b5; padding: 8px 10px; font-size: 13px; border-radius: 4px; margin: 8px 0; }
+</style>
+</head>
+<body>
+<h1>Stage 2：版本号 + 全局定序（冲突就拒绝+重同步）</h1>
+<p>
+  <span id="status">连接中…</span> ｜
+  <label><input type="checkbox" id="delay" checked> 模拟网络延迟 800ms</label>
+</p>
+<p id="meta"></p>
+<div id="notice"></div>
+<textarea id="editor"></textarea>
+<p style="color:#999;font-size:13px">操作日志：</p>
+<div id="log"></div>
+
+<script>
+  const editor = document.getElementById('editor');
+  const statusEl = document.getElementById('status');
+  const metaEl = document.getElementById('meta');
+  const logEl = document.getElementById('log');
+  const noticeEl = document.getElementById('notice');
+  const delayEl = document.getElementById('delay');
+  const ws = new WebSocket(`ws://${location.host}`);
+
+  // 每个客户端一个随机 id，用来识别"服务端广播回来的我自己的操作"（回执）
+  const clientId = Math.random().toString(36).slice(2, 8);
+
+  // ---------- 客户端状态 ----------
+  let rev = 0;          // 我看到的最新服务端版本号
+  let pending = null;   // 已发出、还没收到回执的操作（最多一个！）
+  const buffer = [];    // 等待发送的操作队列
+  let oldValue = '';
+
+  function applyOp(doc, op) {
+    if (op.kind === 'insert') return doc.slice(0, op.pos) + op.str + doc.slice(op.pos);
+    if (op.kind === 'delete') return doc.slice(0, op.pos) + doc.slice(op.pos + op.len);
+    return doc;
+  }
+
+  function diffToOps(oldText, newText) {
+    let start = 0;
+    const minLen = Math.min(oldText.length, newText.length);
+    while (start < minLen && oldText[start] === newText[start]) start++;
+    let oldEnd = oldText.length, newEnd = newText.length;
+    while (oldEnd > start && newEnd > start && oldText[oldEnd - 1] === newText[newEnd - 1]) { oldEnd--; newEnd--; }
+    const ops = [];
+    if (oldEnd > start) ops.push({ kind: 'delete', pos: start, len: oldEnd - start });
+    if (newEnd > start) ops.push({ kind: 'insert', pos: start, str: newText.slice(start, newEnd) });
+    return ops;
+  }
+
+  // ---------- 关键规则：任何时刻最多只有"一个在途操作" ----------
+  // 如果有 pending，新操作先排队；收到回执后再发下一个。
+  // 这样能保证：发出操作的 baseRev 一定等于服务端的 rev（除非真·并发冲突）。
+  function pushOrSend(op) {
+    if (pending) { buffer.push(op); return; }
+    pending = op;
+    rawSend({ type: 'op', op, baseRev: rev, from: clientId });
+    log(`发送 baseRev=${rev}`, op);
+  }
+
+  function rawSend(msg) {
+    const payload = JSON.stringify(msg);
+    if (delayEl.checked) setTimeout(() => ws.send(payload), 800);
+    else ws.send(payload);
+  }
+
+  editor.addEventListener('input', () => {
+    const ops = diffToOps(oldValue, editor.value);
+    oldValue = editor.value;
+    refreshMeta();
+    for (const op of ops) pushOrSend(op);
+  });
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'init') {
+      editor.value = msg.text; oldValue = msg.text; rev = msg.rev;
+    }
+
+    if (msg.type === 'op') {
+      if (msg.from === clientId) {
+        // 回执：我的操作被接受了
+        rev = msg.rev;
+        log(`回执 rev=${rev}`, msg.op);
+        pending = null;
+        if (buffer.length > 0) {
+          pending = buffer.shift();
+          rawSend({ type: 'op', op: pending, baseRev: rev, from: clientId });
+          log(`发送 baseRev=${rev}`, pending);
+        }
+      } else {
+        // 别人的操作：直接套用（注意：本阶段这样做其实不总正确，Stage 3 修）
+        log(`接收 rev=${msg.rev}`, msg.op);
+        applyRemote(msg.op);
+        rev = msg.rev;
+      }
+    }
+
+    if (msg.type === 'reject') {
+      // 我的 pending 操作过期被拒：服务端是真理源，强制重同步
+      // 代价：pending 和 buffer 里还没发出去的操作全部丢弃！
+      const lost = (pending ? 1 : 0) + buffer.length;
+      logEl.textContent += `【被拒绝】丢弃 ${lost} 个本地操作，强制重同步到 rev=${msg.rev}\n`;
+      notice(`检测到并发冲突：你的 ${lost} 个操作被丢弃，已重新同步`);
+      editor.value = msg.doc; oldValue = msg.doc; rev = msg.rev;
+      pending = null; buffer.length = 0;
+    }
+    refreshMeta();
+  };
+
+  function applyRemote(op) {
+    const cursor = editor.selectionStart;
+    editor.value = applyOp(editor.value, op);
+    oldValue = editor.value;
+    let c = cursor;
+    if (op.kind === 'insert' && op.pos <= cursor) c = cursor + op.str.length;
+    if (op.kind === 'delete') {
+      if (op.pos + op.len <= cursor) c = cursor - op.len;
+      else if (op.pos < cursor) c = op.pos;
+    }
+    editor.selectionStart = editor.selectionEnd = c;
+  }
+
+  // ---------- 辅助 ----------
+  ws.onopen = () => (statusEl.textContent = '已连接');
+  ws.onclose = () => (statusEl.textContent = '已断开');
+
+  function log(prefix, op) {
+    logEl.textContent += `${prefix} ${JSON.stringify(op)}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  let noticeTimer;
+  function notice(text) {
+    noticeEl.textContent = text;
+    noticeEl.style.display = 'block';
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(() => (noticeEl.style.display = 'none'), 4000);
+  }
+
+  function checksum(s) {
+    let h = 0;
+    for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return h.toString(16);
+  }
+  function refreshMeta() {
+    metaEl.innerHTML = `rev=<b>${rev}</b> ｜ 长度 <b>${editor.value.length}</b> ｜ 校验值 <b>${checksum(editor.value)}</b> ｜ 在途 ${pending ? 1 : 0}，排队 ${buffer.length}`;
+  }
+  refreshMeta();
+</script>
+</body>
+</html>
