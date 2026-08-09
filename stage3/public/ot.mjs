@@ -33,7 +33,10 @@ export function transform(op, other, opIsLeft) {
     if (other.pos + other.len <= op.pos) {
       op.pos -= other.len;      // 被删区间整体在我左边 → 我左移
     } else if (other.pos < op.pos) {
-      op.pos = other.pos;       // 我的插入点落在被删区间内 → 挪到区间起点
+      // 我的插入点被删除区间覆盖 → 插入作废（返回空操作）。
+      // 必须与规则三「delete 吸收 insert」同一生死裁决（两个方向都 delete 赢），
+      // 否则一端保留插入、另一端删除插入 → 发散（违反收敛性质 TP1）
+      return { kind: 'insert', pos: other.pos, str: '' };
     }
   }
 
