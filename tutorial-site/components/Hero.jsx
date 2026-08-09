@@ -12,7 +12,8 @@ const STAGES = [
   { href: '/stage1', num: '01', title: '操作化', desc: 'insert / delete，意图登场' },
   { href: '/stage2', num: '02', title: '版本定序', desc: 'rev + baseRev，冲突可检测' },
   { href: '/stage3', num: '03', title: 'transform', desc: 'OT 心脏，可视化逐拍播放' },
-  { href: '/stage4', num: '04', title: '工程化', desc: '光标 / undo / 持久化 / CRDT' },
+  { href: '/stage4', num: '04', title: '光标与压测', desc: '光标 transform、远端光标、压力测试' },
+  { href: '/stage5', num: '05', title: '工程化', desc: '持久化 / 快照截断 / 协同 undo' },
 ];
 
 /* ---------- 实况动画脚本：A 打「协同」，B 打「编辑」，A 补「 OT」 ---------- */
@@ -133,7 +134,7 @@ export default function Hero() {
           <Link href="/stage3" className={styles.ctaGhost}>直接看 transform 可视化</Link>
         </div>
         <div className={styles.stats}>
-          <span><b>5</b> 个递进阶段</span><i />
+          <span><b>6</b> 个递进阶段</span><i />
           <span><b>4</b> 个可玩沙盒</span><i />
           <span><b>1</b> 场算法可视化</span><i />
           <span><b>0</b> 空话，全部真实算法驱动</span>

@@ -15,5 +15,6 @@ export default {
   stage1: 'Stage 1 · 操作化',
   stage2: 'Stage 2 · 版本定序',
   stage3: 'Stage 3 · transform',
-  stage4: 'Stage 4 · 工程化',
+  stage4: 'Stage 4 · 光标与压测',
+  stage5: 'Stage 5 · 持久化与 undo',
 };
