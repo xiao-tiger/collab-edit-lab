@@ -1,5 +1,5 @@
 {
-  "name": "collab-demo",
+  "name": "collab-edit-lab",
   "private": true,
   "type": "module",
   "description": "协同编辑从 0 到 1：OT 篇 + CRDT 篇 + 交互教程站",

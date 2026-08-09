@@ -1,4 +1,4 @@
-# collab-demo：协同编辑从 0 到 1
+# collab-edit-lab：协同编辑从 0 到 1
 
 亲手实现协同编辑的完整学习项目：先走 **OT**（Google Docs 路线），再走 **CRDT**（Yjs 路线），配一个可交互的教程网站。
 
@@ -13,7 +13,7 @@ npm run site      # 教程网站（开发模式）→ :8020
 ## 目录结构
 
 ```
-collab-demo/
+collab-edit-lab/
 ├── ot/                  # OT 篇（六个递进 demo，各带教程级 README）
 │   ├── 00-broadcast/            全量广播：并发互相覆盖
 │   ├── 01-operations/           操作化：insert/delete 携带意图，但位置漂移
