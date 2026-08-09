@@ -1,3 +1,4 @@
 node_modules
 .next
 stage5/data.json
+crdt/c4/public/bundle.js

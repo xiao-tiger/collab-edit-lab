@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CRDT C4 · Yjs 协同编辑器</title>
+<style>
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #171717; }
+  h1 { font-size: 20px; }
+  #status, #meta, #peersLabel { color: #666; font-size: 13px; }
+  #peers { font-size: 13px; font-family: ui-monospace, monospace; }
+  textarea { width: 100%; height: 260px; font-size: 16px; line-height: 1.6; padding: 10px;
+             box-sizing: border-box; border: 1px solid #eaeaea; border-radius: 10px; }
+  .hint { background: rgba(0,112,243,.06); border-left: 3px solid #0070f3; padding: 10px 14px;
+          font-size: 13px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+</style>
+</head>
+<body>
+<h1>Stage C4：Yjs 协同编辑器</h1>
+<p><span id="status">连接中…</span> ｜ <span id="meta"></span> ｜ 在线：<span id="peers"></span></p>
+<div class="hint">
+  实验：① 开两个标签页同时打字 → 收敛；② <b>停掉服务端</b>继续打字 → 刷新页面内容还在（IndexedDB）→ 重启服务端 → 自动合并；③ 换 URL 房间名 <code>?room=xxx</code> 无效？——房间由 WebSocket 路径决定，本 demo 固定 <code>c4-room</code>。
+</div>
+<textarea id="editor" placeholder="开两个标签页，同时打字试试"></textarea>
+<script src="bundle.js"></script>
+</body>
+</html>

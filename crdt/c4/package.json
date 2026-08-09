@@ -1,0 +1,18 @@
+{
+  "name": "crdt-c4-yjs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild client.js --bundle --format=esm --outfile=public/bundle.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0",
+    "y-indexeddb": "^9.0.12",
+    "y-websocket": "^2.0.4",
+    "yjs": "^13.6.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.0"
+  }
+}
