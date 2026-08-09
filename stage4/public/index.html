@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Stage 4 - 光标 transform + 压力测试</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; }
+  h1 { font-size: 20px; }
+  #status, #meta { color: #999; font-size: 13px; }
+  #meta b { color: #333; }
+  textarea { width: 100%; height: 200px; font-size: 16px; line-height: 1.6; padding: 10px; box-sizing: border-box; }
+  #mirrorLabel { font-size: 12px; color: #999; margin: 14px 0 6px; }
+  #mirror { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; min-height: 32px;
+            background: #f6f6f6; border: 1px solid #eee; border-radius: 8px; padding: 8px; }
+  .cell { font-family: ui-monospace, monospace; font-size: 14px; background: #fff;
+          border: 1px solid #ddd; border-radius: 4px; padding: 4px 5px; min-width: 18px; text-align: center; }
+  .cursor { width: 3px; height: 20px; border-radius: 2px; }
+  .me { background: #0070f3; box-shadow: 0 0 6px rgba(0,112,243,.6); }
+  .peer { background: #f5a623; box-shadow: 0 0 6px rgba(245,166,35,.6); }
+  #log { background: #f6f6f6; border: 1px solid #eee; font-size: 12px; padding: 8px; height: 130px; overflow-y: auto; white-space: pre-wrap; }
+  label, #botStatus { font-size: 13px; color: #555; }
+  button { font-size: 13px; padding: 6px 14px; border: 1px solid #ccc; border-radius: 7px;
+           background: #fff; cursor: pointer; }
+  button:hover { border-color: #999; }
+</style>
+</head>
+<body>
+<h1>Stage 4：光标 transform + 远端光标 + 压力测试</h1>
+<p>
+  <span id="status">连接中…</span> ｜
+  <label><input type="checkbox" id="delay" checked> 模拟网络延迟 800ms</label> ｜
+  <button id="bot">🤖 机器人压力测试</button>
+  <span id="botStatus"></span>
+</p>
+<p id="meta"></p>
+<textarea id="editor"></textarea>
+<p id="mirrorLabel">文档镜像（蓝线=我的光标，橙线=对方光标）：</p>
+<div id="mirror"></div>
+<p style="color:#999;font-size:13px">操作日志：</p>
+<div id="log"></div>
+
+<script type="module">
+  import { applyOp, transform } from '/ot.mjs';
+
+  const editor = document.getElementById('editor');
+  const statusEl = document.getElementById('status');
+  const metaEl = document.getElementById('meta');
+  const logEl = document.getElementById('log');
+  const mirrorEl = document.getElementById('mirror');
+  const delayEl = document.getElementById('delay');
+  const ws = new WebSocket(`ws://${location.host}`);
+  const clientId = Math.random().toString(36).slice(2, 8);
+
+  let rev = 0, pending = null, lastSent = null;
+  const buffer = [];
+  let oldValue = '';
+  const peers = new Map(); // 对方客户端 id → 光标位置（已换算到本地坐标）
+
+  // ---------- 新增①：光标换算 = 把光标看成"空串 insert"做 transform ----------
+  // opIsLeft 恒为 false：同位置并发插入时，光标跟随后到文本（两端裁决必须全局一致，否则光标错位）
+  function transformPos(pos, op) {
+    return transform({ kind: 'insert', pos, str: '' }, op, false).pos;
+  }
+
+  function diffToOps(oldText, newText) {
+    let start = 0;
+    const minLen = Math.min(oldText.length, newText.length);
+    while (start < minLen && oldText[start] === newText[start]) start++;
+    let oldEnd = oldText.length, newEnd = newText.length;
+    while (oldEnd > start && newEnd > start && oldText[oldEnd - 1] === newText[newEnd - 1]) { oldEnd--; newEnd--; }
+    const ops = [];
+    if (oldEnd > start) ops.push({ kind: 'delete', pos: start, len: oldEnd - start });
+    if (newEnd > start) ops.push({ kind: 'insert', pos: start, str: newText.slice(start, newEnd) });
+    return ops;
+  }
+
+  function sendOp(op) {
+    pending = op; lastSent = { ...op };
+    rawSend({ type: 'op', op, baseRev: rev, from: clientId });
+    log(`发送 baseRev=${rev}`, op);
+  }
+  function pushOrSend(op) { if (pending) buffer.push(op); else sendOp(op); refreshMeta(); }
+  function rawSend(msg) {
+    const payload = JSON.stringify(msg);
+    if (delayEl.checked) setTimeout(() => ws.send(payload), 800);
+    else ws.send(payload);
+  }
+
+  // ---------- 新增②：上报本地光标（带 baseRev，服务端会修正过期坐标）----------
+  let cursorTimer = null;
+  function scheduleCursorSend() {
+    clearTimeout(cursorTimer);
+    cursorTimer = setTimeout(() => {
+      if (ws.readyState === 1) {
+        rawSend({ type: 'cursor', pos: editor.selectionStart, baseRev: rev, from: clientId });
+      }
+    }, 80);
+  }
+  document.addEventListener('selectionchange', () => {
+    if (document.activeElement === editor) scheduleCursorSend();
+  });
+
+  editor.addEventListener('input', () => {
+    const ops = diffToOps(oldValue, editor.value);
+    oldValue = editor.value;
+    for (const op of ops) pushOrSend(op);
+    scheduleCursorSend();
+    renderMirror();
+    refreshMeta();
+  });
+
+  ws.onmessage = (e) => {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === 'init') {
+      editor.value = msg.text; oldValue = msg.text; rev = msg.rev;
+    }
+
+    // ---------- 新增③：收到对方光标 ----------
+    if (msg.type === 'cursor') {
+      // 服务端已把 pos 修正到服务端 rev；若我本地还有未确认操作，再针对它们换算一次
+      let pos = msg.pos;
+      if (pending) {
+        pos = transformPos(pos, pending);
+        for (const b of buffer) pos = transformPos(pos, b);
+      }
+      peers.set(msg.from, pos);
+      logEl.textContent += `对方光标 @${pos}（服务端已修正）\n`;
+      renderMirror();
+    }
+
+    if (msg.type === 'op') {
+      if (msg.from === clientId) {
+        rev = msg.rev;
+        if (JSON.stringify(msg.op) !== JSON.stringify(lastSent)) {
+          logEl.textContent += `【服务端修正了坐标 ✅】${JSON.stringify(lastSent)} → ${JSON.stringify(msg.op)}\n`;
+        } else {
+          log(`回执 rev=${rev}`, msg.op);
+        }
+        pending = null; lastSent = null;
+        if (buffer.length > 0) sendOp(buffer.shift());
+      } else {
+        let opPrime = msg.op;
+        if (pending) {
+          opPrime = transform(msg.op, pending, true);
+          pending = transform(pending, msg.op, false);
+          for (let i = 0; i < buffer.length; i++) {
+            const b = buffer[i];
+            buffer[i] = transform(b, opPrime, false);
+            opPrime = transform(opPrime, b, true);
+          }
+          log(`接收(已本地变换) rev=${msg.rev}`, opPrime);
+        } else {
+          log(`接收 rev=${msg.rev}`, opPrime);
+        }
+        applyRemote(opPrime);
+        rev = msg.rev;
+      }
+    }
+    renderMirror();
+    refreshMeta();
+  };
+
+  // ---------- 改动④：本地光标用 transform 换算（替代 Stage 1 以来的朴素调整）----------
+  function applyRemote(op) {
+    const start = transformPos(editor.selectionStart, op);
+    const end = transformPos(editor.selectionEnd, op);
+    editor.value = applyOp(editor.value, op);
+    oldValue = editor.value;
+    editor.selectionStart = start;
+    editor.selectionEnd = end;
+  }
+
+  // ---------- 新增⑤：文档镜像（字符格子 + 双光标）----------
+  function renderMirror() {
+    mirrorEl.innerHTML = '';
+    const doc = editor.value;
+    const myPos = editor.selectionStart;
+    for (let i = 0; i <= doc.length; i++) {
+      if (i === myPos) mirrorEl.appendChild(mkCursor('me'));
+      for (const [id, p] of peers) {
+        if (p === i && id !== clientId) mirrorEl.appendChild(mkCursor('peer'));
+      }
+      if (i < doc.length) {
+        const s = document.createElement('span');
+        s.className = 'cell';
+        s.textContent = doc[i] === ' ' ? '␣' : doc[i];
+        mirrorEl.appendChild(s);
+      }
+    }
+  }
+  function mkCursor(cls) {
+    const s = document.createElement('span');
+    s.className = `cursor ${cls}`;
+    return s;
+  }
+
+  // ---------- 新增⑥：机器人压力测试（随机并发改文档，验证最终收敛）----------
+  const CHARS = 'abcdefghijklmnopqrstuvwxyz';
+  document.getElementById('bot').addEventListener('click', () => {
+    const total = 80;
+    let n = 0;
+    const statusEl2 = document.getElementById('botStatus');
+    statusEl2.textContent = ` 运行中 0/${total}`;
+    const timer = setInterval(() => {
+      const doc = editor.value;
+      if (doc.length > 0 && Math.random() < 0.3) {
+        const pos = Math.floor(Math.random() * doc.length);
+        const len = Math.min(1 + Math.floor(Math.random() * 2), doc.length - pos);
+        editor.value = doc.slice(0, pos) + doc.slice(pos + len);
+      } else {
+        const pos = Math.floor(Math.random() * (doc.length + 1));
+        const str = CHARS[Math.floor(Math.random() * 26)];
+        editor.value = doc.slice(0, pos) + str + doc.slice(pos);
+      }
+      editor.dispatchEvent(new Event('input')); // 走与真人输入完全相同的链路
+      n++;
+      statusEl2.textContent = ` 运行中 ${n}/${total}`;
+      if (n >= total) {
+        clearInterval(timer);
+        statusEl2.textContent = ' 完成！等"在途/排队"清零后，对比两个标签页的校验值';
+      }
+    }, 70);
+  });
+
+  // ---------- 辅助 ----------
+  ws.onopen = () => (statusEl.textContent = '已连接');
+  ws.onclose = () => (statusEl.textContent = '已断开');
+  function log(prefix, op) {
+    logEl.textContent += `${prefix} ${JSON.stringify(op)}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function checksum(s) {
+    let h = 0;
+    for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    return h.toString(16);
+  }
+  function refreshMeta() {
+    metaEl.innerHTML = `rev=<b>${rev}</b> ｜ 长度 <b>${editor.value.length}</b> ｜ 校验值 <b>${checksum(editor.value)}</b> ｜ 在途 ${pending ? 1 : 0}，排队 ${buffer.length}`;
+  }
+  refreshMeta();
+</script>
+</body>
+</html>
