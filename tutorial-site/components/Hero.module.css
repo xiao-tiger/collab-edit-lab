@@ -135,6 +135,42 @@
 .flyB { background: var(--b); box-shadow: 0 0 10px var(--b); }
 @keyframes flyToServer { to { left: calc(100% - 96px); opacity: .25; } }
 
+/* ---------- 实况标题 ---------- */
+.liveCaption {
+  text-align: center; color: var(--dim); font-size: 14px; margin: 0 auto 14px; max-width: 640px;
+}
+
+/* ---------- 两条路线 ---------- */
+.routes { position: relative; max-width: 1080px; margin: 72px auto 0; }
+.routeGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 22px; }
+.route {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 26px 26px 22px; transition: transform .18s, box-shadow .18s, border-color .18s;
+}
+.route:hover { transform: translateY(-3px); box-shadow: 0 14px 40px rgba(0,0,0,.08); border-color: var(--dim); }
+.routeKicker {
+  font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .12em;
+  color: var(--srv); margin: 0 0 10px;
+}
+.routeTitle { font-size: 26px; font-weight: 800; color: var(--ink); margin: 0 0 12px; }
+.routeTitle span {
+  font-size: 13px; font-weight: 500; color: var(--dim); margin-left: 10px;
+  border: 1px solid var(--border); border-radius: 999px; padding: 3px 10px; vertical-align: middle;
+}
+.routeDesc { color: var(--ink); font-size: 15px; line-height: 1.8; margin: 0 0 10px; }
+.routeDesc b { color: var(--a); }
+.routeMeta { font-size: 13px; color: var(--dim); margin: 0 0 14px; }
+.routeSteps {
+  margin: 0 0 18px; padding-left: 20px; color: var(--dim); font-size: 13.5px; line-height: 2;
+}
+.routeBtn {
+  display: inline-block; font-weight: 600; font-size: 14px; text-decoration: none;
+  background: var(--ink); color: var(--panel); padding: 10px 22px; border-radius: 8px;
+  transition: transform .18s, box-shadow .18s;
+}
+.routeBtn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.16); }
+.routeFoot { text-align: center; color: var(--dim); font-size: 13px; margin-top: 18px; }
+
 /* ---------- 阶段地图 ---------- */
 .map { position: relative; max-width: 1080px; margin: 64px auto 0; }
 .mapTitle { text-align: center; font-size: 22px; color: var(--ink); margin: 0 0 22px; }
@@ -169,6 +205,7 @@
 @media (max-width: 900px) {
   .cards, .cardsCrdt { grid-template-columns: 1fr 1fr; }
   .hero { padding-top: 64px; }
+  .routeGrid { grid-template-columns: 1fr; }
 }
 @media (max-width: 520px) {
   .cards, .cardsCrdt { grid-template-columns: 1fr; }

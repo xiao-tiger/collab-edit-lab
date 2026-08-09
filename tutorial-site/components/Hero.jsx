@@ -22,15 +22,15 @@ const CRDT_STAGES = [
   { href: '/crdt4', num: 'C4', title: '上手 Yjs', desc: '工业级 CRDT：哑服务端 + 离线持久化' },
 ];
 
-/* ---------- 实况动画脚本：A 打「协同」，B 打「编辑」，A 补「 OT」 ---------- */
+/* ---------- 实况动画脚本：A/B 交替打出「协同编辑 OT」 ---------- */
 const SCRIPT = [
   { actor: 'A', op: { kind: 'insert', pos: 0, str: '协' } },
-  { actor: 'B', op: { kind: 'insert', pos: 0, str: '编' } }, // 并发感：B 在 A 还没走远时插入
-  { actor: 'A', op: { kind: 'insert', pos: 1, str: '同' } },
+  { actor: 'B', op: { kind: 'insert', pos: 1, str: '同' } },
+  { actor: 'A', op: { kind: 'insert', pos: 2, str: '编' } },
   { actor: 'B', op: { kind: 'insert', pos: 3, str: '辑' } },
-  { actor: 'A', op: { kind: 'insert', pos: 3, str: ' ' } },
+  { actor: 'A', op: { kind: 'insert', pos: 4, str: ' ' } },
   { actor: 'B', op: { kind: 'insert', pos: 5, str: 'O' } },
-  { actor: 'B', op: { kind: 'insert', pos: 6, str: 'T' } },
+  { actor: 'A', op: { kind: 'insert', pos: 6, str: 'T' } },
 ];
 const INITIAL_CELLS = [];
 
@@ -133,26 +133,69 @@ export default function Hero() {
         </h1>
         <p className={styles.sub}>
           为什么一百个人同时打字，在线文档不会乱？<br />
-          不读论文、不写空话——从最笨的广播开始，五个可玩的阶段，亲手搓出 Google Docs 的核心算法 OT。
+          答案在两套算法里。不读论文、不写空话——从最笨的办法开始，<br />
+          一步步把它们亲手实现出来，每一步都有可以上手玩的 Demo。
         </p>
         <div className={styles.ctas}>
-          <Link href="/stage0" className={styles.ctaPrimary}>从 Stage 0 开始 →</Link>
-          <Link href="/stage3" className={styles.ctaGhost}>直接看 transform 可视化</Link>
+          <Link href="/stage0" className={styles.ctaPrimary}>开始学习之旅 →</Link>
+          <a href="#routes" className={styles.ctaGhost}>先看看两条路线 ↓</a>
         </div>
         <div className={styles.stats}>
-          <span><b>2</b> 条技术路线（OT + CRDT）</span><i />
           <span><b>10</b> 个递进章节</span><i />
           <span><b>7</b> 个可玩沙盒</span><i />
-          <span><b>0</b> 空话，全部真实算法驱动</span>
+          <span><b>1</b> 场算法可视化</span><i />
+          <span><b>0</b> 空话，全部真实代码</span>
         </div>
       </section>
 
       <section className={styles.live}>
+        <p className={styles.liveCaption}>👇 正在实时演示：两个用户同时输入，修改即时同步——这个教程会让你明白它为什么能做到</p>
         <LiveDemo />
       </section>
 
+      <section className={styles.routes} id="routes">
+        <h2 className={styles.mapTitle}>两套算法，两种世界观</h2>
+        <div className={styles.routeGrid}>
+          <div className={styles.route}>
+            <p className={styles.routeKicker}>路线一 · 6 章</p>
+            <h3 className={styles.routeTitle}>OT <span>操作变换</span></h3>
+            <p className={styles.routeDesc}>
+              雇一个「总台」：所有人的每次修改都报给它排队编号；
+              谁的坐标过期了，总台负责<b>修正</b>之后再登记。
+            </p>
+            <p className={styles.routeMeta}>Google Docs 同款 · 适合中心化产品</p>
+            <ol className={styles.routeSteps}>
+              <li>最笨的广播：亲手复现「互相覆盖」</li>
+              <li>操作化：insert / delete 登场</li>
+              <li>版本号：冲突变得可检测</li>
+              <li>transform：修正坐标，不再丢编辑</li>
+              <li>光标与压力测试</li>
+              <li>持久化、快照与协同 undo</li>
+            </ol>
+            <Link href="/stage0" className={styles.routeBtn}>从第 0 章开始 →</Link>
+          </div>
+          <div className={styles.route}>
+            <p className={styles.routeKicker}>路线二 · 4 章</p>
+            <h3 className={styles.routeTitle}>CRDT <span>无冲突数据类型</span></h3>
+            <p className={styles.routeDesc}>
+              不要总台：给每个字符发一张全局唯一的「身份证」，
+              修改无论按什么顺序、隔多久传来，<b>数学保证</b>合并出同一个结果。
+            </p>
+            <p className={styles.routeMeta}>离线编辑 / P2P / 端到端加密的首选</p>
+            <ol className={styles.routeSteps}>
+              <li>最简 CRDT：合并的三条数学性质</li>
+              <li>迷你 RGA：给字符发身份证</li>
+              <li>离线合并：断网改完，重连即收敛</li>
+              <li>Yjs 实战：工业级 CRDT 库</li>
+            </ol>
+            <Link href="/crdt1" className={styles.routeBtn}>从 C1 开始 →</Link>
+          </div>
+        </div>
+        <p className={styles.routeFoot}>建议顺序：先 OT 后 CRDT——理解了「总台定序」的痛，才懂「身份证」的妙。</p>
+      </section>
+
       <section className={styles.map}>
-        <h2 className={styles.mapTitle}>学习地图</h2>
+        <h2 className={styles.mapTitle}>章节索引</h2>
         <h3 className={styles.mapSub}>OT 篇 · Google Docs 路线</h3>
         <div className={styles.cards}>
           {OT_STAGES.map((s) => (
