@@ -1,0 +1,98 @@
+/* 沙盒组件 · 配色对齐 nextjs.org 文档（浅色优先，暗色兼容） */
+.wrap {
+  --panel: #fafafa;
+  --border: #eaeaea;
+  --ink: #171717;
+  --dim: #666666;
+  --a: #0070f3;
+  --b: #d97706;
+  --srv: #059669;
+  --bad: #dc2626;
+  --a-soft: rgba(0, 112, 243, .07);
+  --srv-soft: rgba(5, 150, 105, .07);
+  --bad-soft: rgba(220, 38, 38, .07);
+  margin: 16px 0 28px;
+}
+:global(.dark) .wrap {
+  --panel: #111111;
+  --border: #2e2e2e;
+  --ink: #ededed;
+  --dim: #999999;
+  --a: #3291ff;
+  --b: #f5a623;
+  --srv: #46d19a;
+  --bad: #ff5d73;
+  --a-soft: rgba(50, 145, 255, .1);
+  --srv-soft: rgba(70, 209, 154, .08);
+  --bad-soft: rgba(255, 93, 115, .1);
+}
+
+/* 实验指引：nextjs.org 风格的 callout */
+.hint {
+  font-size: 14px; color: var(--ink);
+  background: var(--a-soft); border: 1px solid var(--border);
+  border-left: 3px solid var(--a);
+  border-radius: 0 8px 8px 0; padding: 10px 14px; margin-bottom: 12px;
+}
+
+.pg {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+}
+.client textarea {
+  width: 100%; height: 130px; resize: vertical;
+  background: #ffffff; color: var(--ink); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; font-size: 14px; line-height: 1.6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  outline: none; transition: border-color .2s, box-shadow .2s;
+}
+:global(.dark) .client textarea { background: #0a0a0a; }
+.client textarea:focus { border-color: var(--a); box-shadow: 0 0 0 3px var(--a-soft); }
+.title {
+  font-family: ui-monospace, monospace; font-size: 12px; font-weight: 700;
+  margin-bottom: 8px; display: flex; justify-content: space-between; gap: 8px;
+}
+.ca .title { color: var(--a); }
+.cb .title { color: var(--b); }
+.meta { color: var(--dim); font-weight: 400; font-size: 11px; }
+.good { color: var(--srv); font-weight: 700; }
+.bad { color: var(--bad); font-weight: 700; }
+.flashBad { border-color: var(--bad) !important; box-shadow: 0 0 0 3px var(--bad-soft) !important; }
+
+.server {
+  grid-column: 1 / -1;
+  background: var(--srv-soft); border: 1px dashed var(--srv);
+  border-radius: 8px; padding: 10px 12px;
+}
+.server .title { color: var(--srv); }
+.sdoc {
+  font-family: ui-monospace, monospace; font-size: 13px;
+  word-break: break-all; min-height: 24px; color: var(--ink);
+}
+
+/* 日志面板：深色（对齐文档站代码块的观感） */
+.logwrap {
+  grid-column: 1 / -1; background: #0a0a0a; border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px;
+}
+.logtitle {
+  font-family: ui-monospace, monospace; font-size: 11px; color: #666;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.clear {
+  background: none; border: 1px solid #333; color: #888;
+  border-radius: 5px; font-size: 11px; cursor: pointer; font-family: ui-monospace, monospace;
+}
+.clear:hover { color: #eee; }
+.log {
+  height: 110px; overflow-y: auto; font-family: ui-monospace, monospace;
+  font-size: 12px; line-height: 1.7; padding-top: 6px; white-space: pre-wrap;
+}
+.la { color: #53c0ff; }
+.lb { color: #ffb547; }
+.ls { color: #46d19a; }
+.lw { color: #ff5d73; }
+
+@media (max-width: 720px) {
+  .pg { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,10 @@
+.toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; margin-left: 10px;
+  background: none; border: 1px solid transparent; border-radius: 7px;
+  color: inherit; cursor: pointer;
+  transition: background .15s, border-color .15s, transform .15s;
+}
+.toggle:hover { background: rgba(127, 127, 127, .12); }
+.toggle:active { transform: scale(.9); }
+.placeholder { width: 17px; height: 17px; display: inline-block; }

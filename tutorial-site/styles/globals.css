@@ -1,0 +1,16 @@
+/* 侧栏底部容器已无任何内容（主题切换移到了顶栏），连同其顶部分隔线一起隐藏 */
+.nextra-sidebar-footer {
+  display: none;
+}
+
+/* Nextra 主题微调：主色对齐 nextjs.org 文档的 Vercel 蓝 */
+:root {
+  --nextra-primary-hue: 212deg;
+  --nextra-primary-saturation: 90%;
+  --nextra-primary-lightness: 46%;
+}
+.dark {
+  --nextra-primary-hue: 212deg;
+  --nextra-primary-saturation: 90%;
+  --nextra-primary-lightness: 62%;
+}

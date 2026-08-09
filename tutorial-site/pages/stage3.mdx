@@ -1,0 +1,64 @@
+import OtPlayground from '../components/OtPlayground'
+import OtVisualizer from '../components/OtVisualizer'
+
+# Stage 3 · transform（OT 的心脏）
+
+过期操作过期的不是版本号，而是**坐标**。`transform` 把坐标从旧版本「换算」到新版本——换算完照常接受，编辑不再丢。
+
+## 可视化播放器
+
+四个预设场景，建议先「单步」逐拍观察，再「自动播放」连贯看一遍。观看要点：操作包怎么飞、服务端红色算式卡片里的坐标修正、B 收到 A 操作时的「本地变换」、最后三方校验值一致。
+
+<OtVisualizer />
+
+## transform 是什么
+
+```js
+transform(op, other, opIsLeft) → 新 op
+// 前提：other 已应用；返回与 op 意图等效、可安全应用在 other 之后的操作
+```
+
+收敛性质（整个 OT 的地基）：无论先 a 后 b' 还是先 b 后 a'，结果相同：
+
+```js
+apply(apply(doc, a), b') === apply(apply(doc, b), a')
+```
+
+### 四条规则（insert/delete 两两组合）
+
+| 我的 op | 遇到的 other | 修正规则 |
+|---|---|---|
+| insert(p) | insert(p₂) | p₂ < p → 右移；**p₂ = p → 排后面的右移**（opIsLeft 裁决，规则任意但全局一致） |
+| insert(p) | delete(p₂,l₂) | 被删区间在我左边 → 左移；**插入点被覆盖 → 作废为空操作** |
+| delete(p,l) | insert(p₂) | 插入在我左边 → 右移；**插进我的删除区间 → 吸收**（len += 一起删） |
+| delete(p,l) | delete(p₂,l₂) | 不相交 → 左移；**重叠 → 重叠部分对方已删，只删剩下的** |
+
+> **TP1 陷阱**：规则二曾经写成「插入点落进被删区间 → 挪到区间起点保留」，结果与规则三（吸收）生死裁决矛盾——同一个并发插入，一个方向判活、另一个判死，两端必然发散。所以必须统一为「delete 赢」：吸收 ↔ 作废。这个 bug 正是上面播放器的场景测试抓出来的。
+
+### 服务端：拒绝换成修正
+
+```js
+if (msg.baseRev !== rev) {                              // 过期？
+  const missed = history.slice(msg.baseRev);            // 它错过的所有操作
+  for (const h of missed) op = transform(op, h, false); // 逐个修正坐标
+}
+// 然后正常接受、定序、广播 —— 不再拒绝！
+```
+
+### 客户端：双侧变换
+
+服务端修好了坐标，但本地 textarea 早就按旧坐标应用过操作。所以收到远端操作时要：① 把它针对自己未确认的 pending/buffer 变换后再应用；② 同步变换 pending/buffer 保持坐标有效。回执到达时 textarea 完全不用动——收敛性质保证殊途同归。
+
+## 自由沙盒
+
+<OtPlayground policy="transform" latency={800}>
+两个框随便同时乱打 → 队列清空后校验值必然一致。日志里能看到「修正」事件
+</OtPlayground>
+
+## 小结
+
+**✅ 学会了什么**：transform 四条规则；服务端用 history 修正过期操作；客户端 pending/buffer 双侧变换；回执自校验。
+
+**⚠️ 还有什么问题**：delete 会吸收区间内的并发插入（语义取舍）；光标仍是朴素调整；无持久化 / undo。
+
+**→ 下一阶段**：工程化打磨——走向生产要解决的问题清单。

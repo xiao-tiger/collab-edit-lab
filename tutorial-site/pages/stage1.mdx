@@ -1,0 +1,51 @@
+import OtPlayground from '../components/OtPlayground'
+
+# Stage 1 · 操作化
+
+不传全文，传**操作**——每次输入被翻译成一条携带意图的小指令：`insert(pos, str)` / `delete(pos, len)`。
+
+## 动手实验
+
+<OtPlayground policy="op" latency={600}>
+① 在 A 输入 hello world，等两边同步 ② A 在**开头**敲个字符、B 在**末尾**按退格（同时）→ 看「已发散 ❌」
+</OtPlayground>
+
+## 操作模型
+
+```js
+{ kind: 'insert', pos: 3, str: 'X' }   // 在位置3插入"X"
+{ kind: 'delete', pos: 3, len: 1 }     // 删除位置3起的1个字符
+```
+
+把输入变成操作：比较新旧文本的**公共前缀 / 公共后缀**，中间变化的部分就是操作：
+
+```js
+// "hello" → "helXlo"：公共前缀 "hel"，公共后缀 "lo"
+// → { kind: 'insert', pos: 3, str: 'X' }
+function diffToOps(oldText, newText) { /* … */ }
+```
+
+单人打字再也不丢了——但暴露出新 bug。
+
+## 新 bug：位置漂移
+
+`pos` 是**相对坐标**。操作基于「我生成它那一刻看到的文档」算出来；等它送达对方，文档已变，坐标就失效：
+
+```
+两边文档都是 "hello world"
+A 在开头插入 "A"      → insert pos=0
+B 在末尾删除 'd'      → delete pos=10
+
+B 的 delete pos=10 到达 A 时，A 的文档已整体右移一位，
+pos=10 指向的不再是 'd' 而是 'l' → 删错字 → 静默发散
+```
+
+> 比 Stage 0 更危险：表面一切正常，内容已经不一致，双方毫无察觉。
+
+## 小结
+
+**✅ 学会了什么**：操作模型 insert/delete；diffToOps 前缀后缀 diff；操作携带意图、可以参与合并。
+
+**⚠️ 还有什么问题**：pos 是旧坐标系里的值；并发下静默发散；服务端无法检测冲突。
+
+**→ 下一阶段**：给文档加版本号——让冲突可检测。

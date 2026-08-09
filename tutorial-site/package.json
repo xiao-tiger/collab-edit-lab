@@ -1,0 +1,19 @@
+{
+  "name": "collab-ot-tutorial",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 8020",
+    "build": "next build",
+    "start": "next start -p 8020"
+  },
+  "dependencies": {
+    "next": "^14.2.0",
+    "nextra": "^3.0.0",
+    "nextra-theme-docs": "^3.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
