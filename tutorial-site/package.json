@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev -p 8020",
     "build": "next build",
-    "start": "next start -p 8020"
+    "preview": "python3 -m http.server 8030 -d out"
   },
   "dependencies": {
     "next": "^14.2.0",

@@ -1,0 +1,47 @@
+# 推送 main 且 tutorial-site 有变更时，自动构建并部署到 GitHub Pages
+# 前置：仓库 Settings → Pages → Source 选 "GitHub Actions"（一次性手动开启）
+name: Deploy tutorial-site to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths: ['tutorial-site/**', '.github/workflows/pages.yml']
+  workflow_dispatch: # 允许手动触发
+
+permissions:
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: tutorial-site/package-lock.json
+      - run: npm ci
+        working-directory: tutorial-site
+      - run: npm run build
+        working-directory: tutorial-site
+        env:
+          PAGES_BASE_PATH: /collab-edit-lab # 项目页子路径
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: tutorial-site/out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

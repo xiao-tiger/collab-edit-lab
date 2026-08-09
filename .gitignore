@@ -1,4 +1,5 @@
 node_modules
 .next
+out
 ot/05-persistence-undo/data.json
 crdt/04-yjs/public/bundle.js
