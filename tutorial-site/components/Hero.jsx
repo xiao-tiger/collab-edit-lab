@@ -7,13 +7,19 @@ import { useEffect, useRef, useState } from 'react';
 import styles from './Hero.module.css';
 
 /* ---------- 阶段地图数据 ---------- */
-const STAGES = [
+const OT_STAGES = [
   { href: '/stage0', num: '00', title: '全量广播', desc: '最笨的同步：亲手复现「互相覆盖」' },
   { href: '/stage1', num: '01', title: '操作化', desc: 'insert / delete，意图登场' },
   { href: '/stage2', num: '02', title: '版本定序', desc: 'rev + baseRev，冲突可检测' },
   { href: '/stage3', num: '03', title: 'transform', desc: 'OT 心脏，可视化逐拍播放' },
   { href: '/stage4', num: '04', title: '光标与压测', desc: '光标 transform、远端光标、压力测试' },
   { href: '/stage5', num: '05', title: '工程化', desc: '持久化 / 快照截断 / 协同 undo' },
+];
+const CRDT_STAGES = [
+  { href: '/crdt1', num: 'C1', title: '最简 CRDT', desc: 'merge 三性质：交换 / 结合 / 幂等' },
+  { href: '/crdt2', num: 'C2', title: '迷你 RGA', desc: '每字符一个身份证，合并 = 并集' },
+  { href: '/crdt3', num: 'C3', title: '离线合并', desc: '断网分叉 → 重连互换状态即收敛' },
+  { href: '/crdt4', num: 'C4', title: '上手 Yjs', desc: '工业级 CRDT：哑服务端 + 离线持久化' },
 ];
 
 /* ---------- 实况动画脚本：A 打「协同」，B 打「编辑」，A 补「 OT」 ---------- */
@@ -134,9 +140,9 @@ export default function Hero() {
           <Link href="/stage3" className={styles.ctaGhost}>直接看 transform 可视化</Link>
         </div>
         <div className={styles.stats}>
-          <span><b>6</b> 个递进阶段</span><i />
-          <span><b>4</b> 个可玩沙盒</span><i />
-          <span><b>1</b> 场算法可视化</span><i />
+          <span><b>2</b> 条技术路线（OT + CRDT）</span><i />
+          <span><b>10</b> 个递进章节</span><i />
+          <span><b>7</b> 个可玩沙盒</span><i />
           <span><b>0</b> 空话，全部真实算法驱动</span>
         </div>
       </section>
@@ -147,8 +153,20 @@ export default function Hero() {
 
       <section className={styles.map}>
         <h2 className={styles.mapTitle}>学习地图</h2>
+        <h3 className={styles.mapSub}>OT 篇 · Google Docs 路线</h3>
         <div className={styles.cards}>
-          {STAGES.map((s) => (
+          {OT_STAGES.map((s) => (
+            <Link key={s.num} href={s.href} className={styles.card}>
+              <span className={styles.cardNum}>{s.num}</span>
+              <span className={styles.cardTitle}>{s.title}</span>
+              <span className={styles.cardDesc}>{s.desc}</span>
+              <span className={styles.cardArrow}>→</span>
+            </Link>
+          ))}
+        </div>
+        <h3 className={styles.mapSub}>CRDT 篇 · 去中心化路线</h3>
+        <div className={`${styles.cards} ${styles.cardsCrdt}`}>
+          {CRDT_STAGES.map((s) => (
             <Link key={s.num} href={s.href} className={styles.card}>
               <span className={styles.cardNum}>{s.num}</span>
               <span className={styles.cardTitle}>{s.title}</span>

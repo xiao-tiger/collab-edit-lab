@@ -22,14 +22,27 @@ tutorial-site/
 │   ├── stage2.mdx          # 版本定序（policy="reject"）
 │   ├── stage3.mdx          # transform（嵌 OtVisualizer + policy="transform" 沙盒）
 │   ├── stage4.mdx          # 光标 transform + 远端光标 + 压力测试
-│   └── stage5.mdx          # 持久化 + 快照截断 + 协同 undo
+│   ├── stage5.mdx          # 持久化 + 快照截断 + 协同 undo
+│   ├── crdt1.mdx           # C1 最简 CRDT（嵌 CrdtCounterSim）
+│   ├── crdt2.mdx           # C2 迷你 RGA（嵌 CrdtRgaSim）
+│   ├── crdt3.mdx           # C3 离线合并（CrdtRgaSim offline 模式）
+│   └── crdt4.mdx           # C4 上手 Yjs（概念映射 + 实验指引）
 ├── components/             # 交互组件（改交互/动画只动这里）
-│   ├── OtPlayground.jsx        # 沙盒：仿真 客户端A/服务端/B + 网络延迟，四种策略
+│   ├── OtPlayground.jsx        # OT 沙盒：仿真 客户端A/服务端/B + 网络延迟，四种策略
 │   ├── OtPlayground.module.css
 │   ├── OtVisualizer.jsx        # OT 可视化播放器：操作包飞行/transform 算式/收敛验证
-│   └── OtVisualizer.module.css
+│   ├── OtVisualizer.module.css
+│   ├── CrdtCounterSim.jsx      # CRDT C1 沙盒：G-Counter/LWW + 捣乱网络
+│   ├── CrdtRgaSim.jsx          # CRDT C2/C3 沙盒：RGA 文本 + 离线模式
+│   ├── CrdtSim.module.css      # CRDT 组件共用样式
+│   ├── Hero.jsx                # 首页落地页（含实况打字动画）
+│   ├── Hero.module.css
+│   ├── ThemeToggle.jsx         # 顶栏明暗切换
+│   └── ThemeToggle.module.css
 ├── lib/
-│   └── ot.js               # OT 核心算法（副本，canonical 在 ../ot/03-transform/public/ot.mjs）
+│   ├── ot.js               # OT 核心（副本，canonical 在 ../ot/03-transform/public/ot.mjs）
+│   ├── rga.js              # RGA 核心（副本，canonical 在 ../crdt/02-rga/rga.js）
+│   └── crdt-basic.js       # G-Counter/LWW（副本，canonical 在 ../crdt/01-counter-register/crdt-core.js）
 ├── theme.config.jsx        # 站点主题配置（标题/侧栏/默认暗色）
 └── next.config.mjs         # Next.js + Nextra 接入
 ```
