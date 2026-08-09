@@ -5,7 +5,7 @@
 ## 运行
 
 ```bash
-open crdt/c2/index.html    # 无需服务器
+npm run crdt:2   # 或 open crdt/02-rga/index.html    # 无需服务器
 ```
 
 ## 核心思想：给每个字符发"身份证"

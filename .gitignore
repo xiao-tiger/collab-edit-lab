@@ -1,4 +1,4 @@
 node_modules
 .next
-stage5/data.json
-crdt/c4/public/bundle.js
+ot/05-persistence-undo/data.json
+crdt/04-yjs/public/bundle.js

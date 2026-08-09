@@ -8,7 +8,7 @@
 无需服务器（这本身就是第一个教学点：P2P 也能收敛）——直接用浏览器打开：
 
 ```bash
-open crdt/c1/index.html
+npm run crdt:1   # 或 open crdt/01-counter-register/index.html
 ```
 
 页面里模拟了两个对等节点（A / B），互发**整个状态的快照**做合并。

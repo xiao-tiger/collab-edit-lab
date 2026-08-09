@@ -6,7 +6,7 @@
 ## 运行
 
 ```bash
-node stage3/server.js   # 端口 8003，开两个浏览器标签页访问
+npm run ot:3   # 或 node ot/03-transform/server.js   # 端口 8003，开两个浏览器标签页访问
 ```
 
 ---

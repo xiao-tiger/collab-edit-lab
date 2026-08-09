@@ -6,7 +6,7 @@
 ## 运行
 
 ```bash
-node stage2/server.js   # 端口 8002，开两个浏览器标签页访问
+npm run ot:2   # 或 node ot/02-versioning/server.js   # 端口 8002，开两个浏览器标签页访问
 ```
 
 ## 本阶段实现

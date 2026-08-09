@@ -5,7 +5,7 @@
 ## 运行
 
 ```bash
-node stage4/server.js   # 端口 8004，开两个浏览器标签页访问
+npm run ot:4   # 或 node ot/04-cursor-stress/server.js   # 端口 8004，开两个浏览器标签页访问
 ```
 
 ## 本阶段实现

@@ -5,7 +5,7 @@
 ## 运行
 
 ```bash
-open crdt/c3/index.html    # 无需服务器
+npm run crdt:3   # 或 open crdt/03-offline/index.html    # 无需服务器
 ```
 
 ## 实验

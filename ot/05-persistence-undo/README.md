@@ -5,7 +5,7 @@
 ## 运行
 
 ```bash
-node stage5/server.js   # 端口 8005，开两个浏览器标签页访问
+npm run ot:5   # 或 node ot/05-persistence-undo/server.js   # 端口 8005，开两个浏览器标签页访问
 ```
 
 ## 本阶段实现

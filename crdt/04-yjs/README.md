@@ -5,7 +5,7 @@
 ## 运行
 
 ```bash
-cd crdt/c4
+npm run crdt:4   # 或 cd crdt/04-yjs && npm install && npm run build && npm start
 npm install        # 首次
 npm run build      # esbuild 打包浏览器端 → public/bundle.js
 npm start          # http://localhost:8014，开两个标签页

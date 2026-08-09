@@ -21,21 +21,22 @@ tutorial-site/
 │   ├── stage1.mdx          # 操作化（policy="op"）
 │   ├── stage2.mdx          # 版本定序（policy="reject"）
 │   ├── stage3.mdx          # transform（嵌 OtVisualizer + policy="transform" 沙盒）
-│   └── stage4.mdx          # 工程化清单 + 自由沙盒
+│   ├── stage4.mdx          # 光标 transform + 远端光标 + 压力测试
+│   └── stage5.mdx          # 持久化 + 快照截断 + 协同 undo
 ├── components/             # 交互组件（改交互/动画只动这里）
 │   ├── OtPlayground.jsx        # 沙盒：仿真 客户端A/服务端/B + 网络延迟，四种策略
 │   ├── OtPlayground.module.css
 │   ├── OtVisualizer.jsx        # OT 可视化播放器：操作包飞行/transform 算式/收敛验证
 │   └── OtVisualizer.module.css
 ├── lib/
-│   └── ot.js               # OT 核心算法（与 stage3/public/ot.mjs 同源，改算法只动这里）
+│   └── ot.js               # OT 核心算法（副本，canonical 在 ../ot/03-transform/public/ot.mjs）
 ├── theme.config.jsx        # 站点主题配置（标题/侧栏/默认暗色）
 └── next.config.mjs         # Next.js + Nextra 接入
 ```
 
 ## 关键实现说明
 
-- **可视化不造假**：`lib/ot.js` 的 `transform` 与 `stage3` 可运行 demo 完全一致；沙盒和播放器都是逐步驱动真实算法状态再渲染
+- **可视化不造假**：`lib/ot.js` 的 `transform` 与 `ot/03-transform` 可运行 demo 完全一致；沙盒和播放器都是逐步驱动真实算法状态再渲染
 - **OtPlayground**：`policy` 属性切换四种同步策略（fulltext/op/reject/transform），对应四个学习阶段
 - **OtVisualizer**：预设场景在组件顶部 `SCENARIOS`，加新场景只需加一条配置
 

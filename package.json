@@ -2,7 +2,20 @@
   "name": "collab-demo",
   "private": true,
   "type": "module",
-  "description": "协同编辑学习 demo：从全量广播到 OT，逐阶段递进",
+  "description": "协同编辑从 0 到 1：OT 篇 + CRDT 篇 + 交互教程站",
+  "scripts": {
+    "ot:0": "node ot/00-broadcast/server.js",
+    "ot:1": "node ot/01-operations/server.js",
+    "ot:2": "node ot/02-versioning/server.js",
+    "ot:3": "node ot/03-transform/server.js",
+    "ot:4": "node ot/04-cursor-stress/server.js",
+    "ot:5": "node ot/05-persistence-undo/server.js",
+    "crdt:1": "open crdt/01-counter-register/index.html",
+    "crdt:2": "open crdt/02-rga/index.html",
+    "crdt:3": "open crdt/03-offline/index.html",
+    "crdt:4": "npm --prefix crdt/04-yjs run build && npm --prefix crdt/04-yjs start",
+    "site": "npm --prefix tutorial-site run dev"
+  },
   "dependencies": {
     "ws": "^8.18.0"
   }

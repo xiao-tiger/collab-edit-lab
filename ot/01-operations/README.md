@@ -6,7 +6,7 @@
 ## 运行
 
 ```bash
-node stage1/server.js   # 端口 8001，开两个浏览器标签页访问
+npm run ot:1   # 或 node ot/01-operations/server.js   # 端口 8001，开两个浏览器标签页访问
 ```
 
 ## 本阶段实现
