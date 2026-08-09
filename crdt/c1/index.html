@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CRDT C1 · 最简 CRDT（无需服务器）</title>
+<style>
+  :root {
+    --ink:#171717; --dim:#666; --border:#eaeaea; --panel:#fafafa;
+    --a:#0070f3; --b:#d97706; --srv:#059669; --bad:#dc2626;
+  }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; max-width: 980px; margin: 32px auto; padding: 0 16px; color: var(--ink); }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 0; }
+  .badge { font-family: ui-monospace, monospace; font-size: 12px; background: rgba(5,150,105,.08);
+           color: var(--srv); border: 1px solid var(--srv); border-radius: 999px; padding: 2px 10px; }
+  .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px;
+              background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+              padding: 10px 14px; margin: 18px 0; }
+  .controls label { color: var(--dim); cursor: pointer; }
+  .arena { display: grid; grid-template-columns: 1fr 220px 1fr; gap: 14px; align-items: stretch; }
+  .node { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .node h2 { font-family: ui-monospace, monospace; font-size: 14px; margin: 0 0 12px; }
+  .node.a h2 { color: var(--a); } .node.b h2 { color: var(--b); }
+  .big { font-family: ui-monospace, monospace; font-size: 44px; font-weight: 700; }
+  .slots { font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim); margin: 4px 0 12px; }
+  button { font-size: 14px; padding: 8px 18px; border: 1px solid var(--border); border-radius: 8px;
+           background: #fff; cursor: pointer; }
+  button:hover { border-color: #999; }
+  .reg { margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 12px; }
+  .reg input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px;
+               border: 1px solid var(--border); border-radius: 8px; }
+  .reg .ver { font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); margin-top: 6px; }
+  .pipe { background: var(--panel); border: 1px dashed var(--border); border-radius: 12px; padding: 10px;
+          display: flex; flex-direction: column; }
+  .pipe h3 { font-size: 12px; color: var(--dim); margin: 0 0 8px; font-weight: 600; }
+  #netlog { flex: 1; overflow-y: auto; font-family: ui-monospace, monospace; font-size: 11px;
+            line-height: 1.7; max-height: 260px; }
+  #netlog .a { color: var(--a); } #netlog .b { color: var(--b); }
+  #netlog .chaos { color: var(--bad); }
+  #verdict { text-align: center; font-family: ui-monospace, monospace; font-size: 14px; margin-top: 16px; }
+  #verdict .ok { color: var(--srv); font-weight: 700; }
+  #verdict .syncing { color: var(--b); }
+  #verdict .bad { color: var(--bad); font-weight: 700; }
+</style>
+</head>
+<body>
+<h1>Stage C1：最简 CRDT <span class="badge">无服务器 · P2P 模拟</span></h1>
+<p class="sub">G-Counter（只增计数器）+ LWW-Register（寄存器）。同步内容 = 整个状态快照，merge 是纯函数。</p>
+
+<div class="controls">
+  <b>网络捣乱开关：</b>
+  <label><input type="checkbox" id="chaosDup"> 重复投递</label>
+  <label><input type="checkbox" id="chaosShuffle"> 乱序/大抖动</label>
+  ｜ 计数器同步策略：
+  <label><input type="radio" name="mode" value="crdt" checked> CRDT merge</label>
+  <label><input type="radio" name="mode" value="naive"> 朴素覆盖（last-write-wins）</label>
+</div>
+
+<div class="arena">
+  <div class="node a" id="nodeA"></div>
+  <div class="pipe">
+    <h3>网络管道（消息日志）</h3>
+    <div id="netlog"></div>
+  </div>
+  <div class="node b" id="nodeB"></div>
+</div>
+<p id="verdict"></p>
+
+<script src="crdt-core.js"></script>
+<script>
+  // ---------- 两个"节点"：各自持有 CRDT 状态，互发快照 ----------
+  const A = { id: 'A', counter: makeGCounter(), reg: makeRegister() };
+  const B = { id: 'B', counter: makeGCounter(), reg: makeRegister() };
+  const nodes = { A, B };
+  const other = (id) => (id === 'A' ? 'B' : 'A');
+
+  const chaosDup = document.getElementById('chaosDup');
+  const chaosShuffle = document.getElementById('chaosShuffle');
+  const netlog = document.getElementById('netlog');
+  const verdict = document.getElementById('verdict');
+  let inFlight = 0;
+
+  function mode() {
+    return document.querySelector('input[name="mode"]:checked').value;
+  }
+
+  // ---------- 虚拟网络：快照投递，支持重复与乱序 ----------
+  function broadcast(from) {
+    const snapshot = JSON.parse(JSON.stringify({ from: from.id, counter: from.counter, reg: from.reg }));
+    const to = other(from.id);
+    const jitter = chaosShuffle.checked ? Math.floor(Math.random() * 900) : 0;
+    send(to, snapshot, jitter, '');
+    if (chaosDup.checked) send(to, snapshot, jitter + 60, '（重复投递）');
+  }
+  function send(toId, snapshot, delay, tag) {
+    inFlight++;
+    nlog(`${snapshot.from} → ${toId} 快照 ${tag}`);
+    setTimeout(() => {
+      inFlight--;
+      receive(nodes[toId], snapshot, tag);
+    }, 400 + delay);
+  }
+  function receive(node, snapshot, tag) {
+    // CRDT：合并是纯函数，乱序/重复无所谓；朴素模式：直接覆盖数值
+    if (mode() === 'crdt') {
+      node.counter = gMerge(node.counter, snapshot.counter);
+    } else {
+      node.counter.counts = { [node.id]: gValue(snapshot.counter) }; // 朴素覆盖
+    }
+    node.reg = regMerge(node.reg, snapshot.reg);
+    nlog(`${node.id} ← 合并快照 ${tag}`, node.id.toLowerCase());
+    render();
+  }
+
+  function nlog(text, cls = '') {
+    const line = document.createElement('div');
+    line.className = text.includes('重复') ? 'chaos' : cls;
+    line.textContent = text;
+    netlog.appendChild(line);
+    netlog.scrollTop = netlog.scrollHeight;
+  }
+
+  // ---------- 渲染 ----------
+  function render() {
+    for (const id of ['A', 'B']) renderNode(nodes[id], document.getElementById('node' + id));
+    const same = JSON.stringify(nodes.A.counter.counts) === JSON.stringify(nodes.B.counter.counts)
+              && nodes.A.reg.value === nodes.B.reg.value;
+    if (same && inFlight === 0) verdict.innerHTML = '<span class="ok">两端一致 ✅（乱序/重复也收敛）</span>';
+    else if (same) verdict.innerHTML = '<span class="syncing">已一致，还有消息在路上…</span>';
+    else if (inFlight > 0) verdict.innerHTML = '<span class="syncing">同步中…</span>';
+    else verdict.innerHTML = '<span class="bad">发散 ❌（朴素覆盖丢了并发增量）</span>';
+  }
+
+  function renderNode(node, el) {
+    el.innerHTML = '';
+    const h = document.createElement('h2'); h.textContent = '节点 ' + node.id;
+    const big = document.createElement('div'); big.className = 'big'; big.textContent = gValue(node.counter);
+    const slots = document.createElement('div'); slots.className = 'slots';
+    slots.textContent = 'counts = ' + JSON.stringify(node.counter.counts);
+    const btn = document.createElement('button'); btn.textContent = '+1';
+    btn.onclick = () => { gInc(node.counter, node.id); broadcast(node); render(); };
+
+    const regBox = document.createElement('div'); regBox.className = 'reg';
+    const input = document.createElement('input');
+    input.value = node.reg.value; input.placeholder = `在 ${node.id} 写入寄存器…`;
+    input.oninput = () => { regSet(node.reg, input.value, node.id); broadcast(node); render(); };
+    const ver = document.createElement('div'); ver.className = 'ver';
+    ver.textContent = `版本 n=${node.reg.n} by=${node.reg.by}`;
+
+    regBox.append(input, ver);
+    el.append(h, big, slots, btn, regBox);
+  }
+
+  render();
+</script>
+</body>
+</html>
