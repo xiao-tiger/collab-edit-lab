@@ -2,6 +2,7 @@ import ThemeToggle from './components/ThemeToggle';
 
 export default {
   logo: <strong>协同编辑实验室</strong>,
+  project: { link: 'https://github.com/xiao-tiger/collab-edit-lab' }, // 顶栏 GitHub 图标
   darkMode: true,
   nextThemes: { defaultTheme: 'light' }, // 默认浅色，顶栏按钮一键切换
   navbar: {
