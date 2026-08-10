@@ -3,6 +3,8 @@ import ThemeToggle from './components/ThemeToggle';
 export default {
   logo: <strong>协同编辑实验室</strong>,
   project: { link: 'https://github.com/xiao-tiger/collab-edit-lab' }, // 顶栏 GitHub 图标
+  docsRepositoryBase: 'https://github.com/xiao-tiger/collab-edit-lab/blob/main/tutorial-site', // “编辑此页”链接前缀
+  editLink: { content: '在 GitHub 上编辑此页' },
   darkMode: true,
   nextThemes: { defaultTheme: 'light' }, // 默认浅色，顶栏按钮一键切换
   navbar: {
