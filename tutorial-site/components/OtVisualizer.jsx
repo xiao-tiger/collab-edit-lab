@@ -58,7 +58,9 @@ export default function OtVisualizer() {
         cellsA: [...m.cellsA], cellsS: [...m.cellsS], cellsB: [...m.cellsB],
         revA: m.revA, revS: m.revS, revB: m.revB,
         noteA: m.noteA, noteB: m.noteB, history: [...m.history],
-        card: m.card, caption: m.caption, ...patch,
+        card: m.card, caption: m.caption,
+        timeline: [...m.timeline], converged: m.converged,
+        ...patch,
       });
     };
   }
@@ -111,11 +113,15 @@ export default function OtVisualizer() {
       cellsA: mkCells(sc.doc), cellsS: mkCells(sc.doc), cellsB: mkCells(sc.doc),
       revA: 0, revS: 0, revB: 0,
       noteA: null, noteB: null, history: [], card: null, caption: '',
+      timeline: [], converged: false,
       pendingA: null, pendingB: null, opBFixed: null,
       flightA: null, flightB: null, bcast1: null, bcast2: null,
     };
     const sync = makeSync(m, token);
     const ok = () => token === runId.current;
+    // 操作时间线：每个关键事件沉淀一条记录，解决"指令飞走就忘了发过什么"
+    let tlId = 0;
+    const tell = (side, text) => { m.timeline.push({ id: ++tlId, side, text }); sync(); };
 
     return [
       { caption: `初始状态：三方文档一致，都是 <b>"${sc.doc}"</b>（rev=0）`,
@@ -125,6 +131,7 @@ export default function OtVisualizer() {
         async run() {
           await applyToStrip(m, sync, 'A', sc.opA, 'A');
           m.pendingA = sc.opA;
+          tell('a', `A 发送：${fmtOp(sc.opA)}（baseRev=0）`);
           m.flightA = flyPacket(m, 'A: ' + fmtOp(sc.opA), styles.pa, nodeA, nodeS);
           await sleep(260);
         } },
@@ -133,6 +140,7 @@ export default function OtVisualizer() {
         async run() {
           await applyToStrip(m, sync, 'B', sc.opB, 'B');
           m.pendingB = sc.opB;
+          tell('b', `B 发送：${fmtOp(sc.opB)}（baseRev=0）—— 与 A 并发`);
           m.flightB = flyPacket(m, 'B: ' + fmtOp(sc.opB), styles.pb, nodeB, nodeS);
           await Promise.all([m.flightA, m.flightB]);
         } },
@@ -141,6 +149,7 @@ export default function OtVisualizer() {
         async run() {
           await applyToStrip(m, sync, 'S', sc.opA, 'A');
           m.revS = 1; m.history.push(`rev1: ${fmtOp(sc.opA)}`); sync();
+          tell('s', `服务端接受 ${fmtOp(sc.opA)} → rev=1，广播`);
           m.bcast1 = Promise.all([
             flyPacket(m, '回执 → A', styles.ps, nodeS, nodeA),
             flyPacket(m, fmtOp(sc.opA) + ' → B', styles.ps, nodeS, nodeB),
@@ -153,6 +162,7 @@ export default function OtVisualizer() {
           m.opBFixed = transform(sc.opB, sc.opA, false);
           m.card = { raw: fmtOp(sc.opB), missed: fmtOp(sc.opA), rule: explainTransform(sc.opB, sc.opA, m.opBFixed), fixed: fmtOp(m.opBFixed) };
           sync();
+          tell('s', `B 的操作过期：${fmtOp(sc.opB)} →修正为→ ${fmtOp(m.opBFixed)}`);
           await sleep(1700);
         } },
 
@@ -160,6 +170,7 @@ export default function OtVisualizer() {
         async run() {
           await applyToStrip(m, sync, 'S', m.opBFixed, 'B');
           m.revS = 2; m.history.push(`rev2: ${fmtOp(m.opBFixed)}`); sync();
+          tell('s', `服务端接受 ${fmtOp(m.opBFixed)} → rev=2，广播`);
           m.bcast2 = Promise.all([
             flyPacket(m, fmtOp(m.opBFixed) + ' → A', styles.ps, nodeS, nodeA),
             flyPacket(m, '回执 → B', styles.ps, nodeS, nodeB),
@@ -172,11 +183,13 @@ export default function OtVisualizer() {
           await m.bcast1; if (!ok()) return;
           m.noteA = { kind: 'ok', text: '回执 ✅ 操作被接受（rev=1）' };
           m.revA = 1; m.pendingA = null;
+          tell('a', 'A 收到回执 ✅（操作已被接受）');
           const opAPrime = transform(sc.opA, m.pendingB, true);
           m.pendingB = transform(m.pendingB, sc.opA, false);
           await applyToStrip(m, sync, 'B', opAPrime, 'A');
           m.revB = 1;
           m.noteB = { kind: 'ok', text: '收到 A 的操作，本地变换后应用 ✅' };
+          tell('b', `B 收到 A 的操作：本地变换后应用（pending 同步变换为 ${fmtOp(m.pendingB)}）`);
           sync();
         } },
 
@@ -185,20 +198,24 @@ export default function OtVisualizer() {
           await m.bcast2; if (!ok()) return;
           await applyToStrip(m, sync, 'A', m.opBFixed, 'B');
           m.revA = 2;
+          tell('a', `A 应用 ${fmtOp(m.opBFixed)}`);
           const consistent = JSON.stringify(m.pendingB) === JSON.stringify(m.opBFixed);
           m.noteB = consistent
             ? { kind: 'ok', text: '回执 ✅ 与本地变换结果一致（rev=2）' }
             : { kind: 'warn', text: '回执与本地不一致 ⚠（transform 实现有 bug）' };
           m.revB = 2; m.pendingB = null; sync();
+          if (consistent) tell('b', 'B 收到回执 ✅ 与本地变换结果一致');
         } },
 
       { caption: '', async run() {
           const docA = cellsText(m.cellsA), docS = cellsText(m.cellsS), docB = cellsText(m.cellsB);
           const same = docA === docS && docS === docB;
           m.card = null;
+          m.converged = same;
           m.caption = same
             ? `<span class="${styles.converged}">收敛 ✅</span> 三方文档完全一致：<b>"${docS}"</b>（校验值 ${checksum(docS)}）。B 的坐标被修正过，但意图完整保留 —— 这就是 OT。`
             : `未一致！A="${docA}" S="${docS}" B="${docB}"`;
+          if (same) tell('ok', `三方一致 ✅ "${docS}"`);
           sync();
         } },
     ];
@@ -272,9 +289,9 @@ export default function OtVisualizer() {
       </div>
 
       <div className={styles.stage} ref={stageRef}>
-        <VNode refObj={nodeA} who="客户端 A" cls="a" rev={view.revA} cells={view.cellsA} note={view.noteA} />
+        <VNode refObj={nodeA} who="客户端 A" cls="a" rev={view.revA} cells={view.cellsA} note={view.noteA} converged={view.converged} />
         <div className={styles.track} />
-        <div className={`${styles.node} ${styles.server}`} ref={nodeS}>
+        <div className={`${styles.node} ${styles.server} ${view.converged ? styles.convergedNode : ''}`} ref={nodeS}>
           <div className={styles.head}><span>服务端</span><span className={styles.rev}>rev={view.revS}</span></div>
           <Strip cells={view.cellsS} />
           {view.card && (
@@ -293,9 +310,22 @@ export default function OtVisualizer() {
           )}
         </div>
         <div className={styles.track} />
-        <VNode refObj={nodeB} who="客户端 B" cls="b" rev={view.revB} cells={view.cellsB} note={view.noteB} />
+        <VNode refObj={nodeB} who="客户端 B" cls="b" rev={view.revB} cells={view.cellsB} note={view.noteB} converged={view.converged} />
         <div ref={overlayRef} className={styles.overlay} />
       </div>
+
+      {/* 操作时间线：每条指令的去向都沉淀在这里，不会"飞走就忘" */}
+      {view.timeline.length > 0 && (
+        <div className={styles.timeline}>
+          <div className={styles.tlTitle}>操作时间线</div>
+          {view.timeline.map((e) => (
+            <div key={e.id} className={styles.tlItem}>
+              <span className={`${styles.dot} ${styles['dot_' + e.side]}`} />
+              <span>{e.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className={styles.caption} dangerouslySetInnerHTML={{ __html: view.caption }} />
     </div>
@@ -304,9 +334,9 @@ export default function OtVisualizer() {
 
 /* ---------- 子组件 ---------- */
 
-function VNode({ refObj, who, cls, rev, cells, note }) {
+function VNode({ refObj, who, cls, rev, cells, note, converged }) {
   return (
-    <div className={`${styles.node} ${styles[cls]}`} ref={refObj}>
+    <div className={`${styles.node} ${styles[cls]} ${converged ? styles.convergedNode : ''}`} ref={refObj}>
       <div className={styles.head}><span>{who}</span><span className={styles.rev}>rev={rev}</span></div>
       <Strip cells={cells} />
       <div className={styles.note}>

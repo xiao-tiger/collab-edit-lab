@@ -1,5 +1,6 @@
 import OtPlayground from '../components/OtPlayground'
 import OtVisualizer from '../components/OtVisualizer'
+import ConvergenceDiagram from '../components/ConvergenceDiagram'
 
 # Stage 3 · transform（OT 的心脏）
 
@@ -24,6 +25,15 @@ transform(op, other, opIsLeft) → 新 op
 apply(apply(doc, a), b') === apply(apply(doc, b), a')
 ```
 
+### 收敛性图解
+
+<ConvergenceDiagram />
+
+上图的例子：文档 `"abc"`，A 在 1 处插入 `X`、B 在 2 处插入 `Y`（并发）。
+1. 左臂：A 先应用自己的 `insert(1,'X')`，再应用**变换后的** `B' = insert(3,'Y')`（B 的插入点被 A 的插入挤后了一位）；
+2. 右臂：B 先应用自己的 `insert(2,'Y')`，再应用 `A' = insert(1,'X')`（A 在 B 前面，不受影响）。
+3. 两条路径终点都是 `"aXbYc"`——这就是 transform 存在的意义。
+
 ### 四条规则（insert/delete 两两组合）
 
 | 我的 op | 遇到的 other | 修正规则 |
@@ -34,6 +44,32 @@ apply(apply(doc, a), b') === apply(apply(doc, b), a')
 | delete(p,l) | delete(p₂,l₂) | 不相交 → 左移；**重叠 → 重叠部分对方已删，只删剩下的** |
 
 > **TP1 陷阱**：规则二曾经写成「插入点落进被删区间 → 挪到区间起点保留」，结果与规则三（吸收）生死裁决矛盾——同一个并发插入，一个方向判活、另一个判死，两端必然发散。所以必须统一为「delete 赢」：吸收 ↔ 作废。这个 bug 正是上面播放器的场景测试抓出来的。
+
+### 难点拆解：opIsLeft 到底是什么
+
+`transform(op, other, opIsLeft)` 的第三个参数，只在一种情况下起作用：**两个 insert 落在同一位置**。
+
+```
+文档 "abc"，A: insert(1,'X')，B: insert(1,'Y') —— 同一位置！
+```
+
+坐标完全一样，数学上看不出谁先谁后。但最终只能有一个顺序（`"aXYbc"` 还是 `"aYXbc"`？），而且**所有副本必须得出同一个答案**。这就是 opIsLeft 的职责：它是一个全局一致的"裁决规则"——**在服务端最终定序里，排前面的（left）原地不动，排后面的右移**。
+
+关键是搞懂"谁是 left"。三处调用，opIsLeft 的含义都是同一个：**"op 在服务端最终顺序里，是否先于 other"**：
+
+```js
+// ① 服务端修正过期操作：history 里的操作先被接受（left），新来的操作是后到（right）
+op = transform(op, historyOp, false)
+
+// ② 客户端把远端操作应用到本地：远端操作已被服务端接受（left），我的 pending 还未被接受（right）
+opPrime = transform(remoteOp, myPending, true)   // remoteOp 是 left → true
+// ③ 客户端同步变换自己的 pending：pending 后到（right）
+myPending = transform(myPending, remoteOp, false)
+```
+
+**如果两端裁决不一致会怎样？** 假设 B 擅自改成"后到者不动"：服务端得到 `"aXYbc"`（A 先被接受），B 本地得到 `"aYXbc"`——两端都"自洽"，但内容不同，而且没有任何机制能发现。这就是 OT 最阴险的 bug 类型：**规则本身不重要，全局一致才重要**。对照 CRDT 篇你会发现：RGA 用"字符 id 降序"解决同一个问题——id 天生可比较，裁决不需要中心协调。
+
+> 注意 transform 卡片在「同位置插入对撞」场景播放时，规则行会显示 opIsLeft 裁决的具体演算，可以对照着看。
 
 ### 服务端：拒绝换成修正
 

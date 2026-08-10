@@ -1,0 +1,35 @@
+.wrap { margin: 20px 0 28px; }
+.svg { width: 100%; height: auto; display: block; }
+
+.box { fill: #ffffff; stroke: #d4d4d4; stroke-width: 1.5; }
+:global(.dark) .box { fill: #0a0a0a; stroke: #2e2e2e; }
+.box_a { stroke: #0070f3; }
+.box_b { stroke: #d97706; }
+.box_s { stroke: #059669; stroke-width: 2; }
+:global(.dark) .box_a { stroke: #3291ff; }
+:global(.dark) .box_b { stroke: #f5a623; }
+:global(.dark) .box_s { stroke: #46d19a; }
+
+.txt { fill: #171717; font-family: ui-monospace, monospace; font-size: 15px; }
+:global(.dark) .txt { fill: #ededed; }
+
+.edge { stroke-width: 2; }
+.edge_a { stroke: #0070f3; }
+.edge_b { stroke: #d97706; }
+.lbl { font-family: ui-monospace, monospace; font-size: 12.5px; }
+.lbl_a { fill: #0070f3; }
+.lbl_b { fill: #d97706; }
+:global(.dark) .lbl_a { fill: #66aaff; }
+:global(.dark) .lbl_b { fill: #f5c06a; }
+:global(.dark) .edge_a { stroke: #3291ff; }
+:global(.dark) .edge_b { stroke: #f5a623; }
+
+.mA { fill: #0070f3; }
+.mB { fill: #d97706; }
+.mS { fill: #059669; }
+:global(.dark) .mA { fill: #3291ff; }
+:global(.dark) .mB { fill: #f5a623; }
+:global(.dark) .mS { fill: #46d19a; }
+
+.figCaption { text-align: center; color: #666; font-size: 13px; margin: 8px 0 0; }
+:global(.dark) .figCaption { color: #999; }

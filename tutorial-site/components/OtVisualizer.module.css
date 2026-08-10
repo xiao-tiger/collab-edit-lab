@@ -129,6 +129,22 @@
 .caption b { color: var(--ink); }
 .converged { color: var(--srv); font-weight: 700; }
 
+/* 收敛时三栏高亮 */
+.convergedNode { border-color: var(--srv) !important; box-shadow: 0 0 0 3px var(--srv-soft); transition: box-shadow .4s, border-color .4s; }
+
+/* 操作时间线 */
+.timeline {
+  margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px;
+  font-family: ui-monospace, monospace; font-size: 12px;
+}
+.tlTitle { color: var(--dim); font-weight: 600; margin-bottom: 8px; letter-spacing: .06em; }
+.tlItem { display: flex; gap: 8px; align-items: baseline; padding: 2.5px 0; color: var(--ink); animation: born .3s; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; transform: translateY(1px); }
+.dot_a { background: var(--a); box-shadow: 0 0 6px var(--a-soft); }
+.dot_b { background: var(--b); }
+.dot_s { background: var(--srv); }
+.dot_ok { background: var(--srv); box-shadow: 0 0 8px var(--srv); }
+
 @media (max-width: 860px) {
   .stage { grid-template-columns: 1fr; gap: 10px; }
   .track { width: 2px; height: 30px; justify-self: center; }
