@@ -10,9 +10,9 @@
     "ot:3": "node ot/03-transform/server.js",
     "ot:4": "node ot/04-cursor-stress/server.js",
     "ot:5": "node ot/05-persistence-undo/server.js",
-    "crdt:1": "open crdt/01-counter-register/index.html",
-    "crdt:2": "open crdt/02-rga/index.html",
-    "crdt:3": "open crdt/03-offline/index.html",
+    "crdt:1": "node crdt/01-counter-register/server.js",
+    "crdt:2": "node crdt/02-rga/server.js",
+    "crdt:3": "node crdt/03-offline/server.js",
     "crdt:4": "npm --prefix crdt/04-yjs run build && npm --prefix crdt/04-yjs start",
     "site": "npm --prefix tutorial-site run dev"
   },

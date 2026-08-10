@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CRDT C3 · 离线合并实测（真服务端）</title>
+<style>
+  :root {
+    --ink:#171717; --dim:#666; --border:#eaeaea; --panel:#fafafa;
+    --a:#0070f3; --b:#d97706; --srv:#059669; --bad:#dc2626;
+  }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; color: var(--ink); }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 0; }
+  .badge { font-family: ui-monospace, monospace; font-size: 12px; background: rgba(5,150,105,.08);
+           color: var(--srv); border: 1px solid var(--srv); border-radius: 999px; padding: 2px 10px; }
+  .controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px;
+              background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+              padding: 10px 14px; margin: 18px 0; }
+  button.net { font-size: 14px; padding: 8px 18px; border: 1px solid var(--border); border-radius: 8px;
+               background: #fff; cursor: pointer; font-weight: 600; }
+  button.net.offline { background: var(--bad); color: #fff; border-color: var(--bad); }
+  textarea { width: 100%; height: 140px; box-sizing: border-box; padding: 10px; font-size: 15px;
+             border: 1px solid var(--border); border-radius: 8px; font-family: ui-monospace, monospace; }
+  .dirty { font-family: ui-monospace, monospace; font-size: 12px; color: var(--b); margin-top: 8px; min-height: 16px; }
+  #log { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-top: 14px;
+         padding: 8px 12px; height: 130px; overflow-y: auto; font-family: ui-monospace, monospace;
+         font-size: 12px; line-height: 1.7; }
+  .tip { background: rgba(0,112,243,.06); border-left: 3px solid var(--a); padding: 10px 14px;
+         font-size: 13px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+</style>
+</head>
+<body>
+<h1>Stage C3：离线合并实测 <span class="badge">真服务端 · 真断网</span></h1>
+<p class="sub">「断开网络」是真关掉 WebSocket。离线期间随便改，重连后互换一次最终状态即收敛。</p>
+
+<div class="tip">实验：开<b>两个标签页</b> → 其中一个点「断开网络」，两边各打一段（已分叉）→ 点「重新连接」→ 瞬间收敛 ✅</div>
+
+<div class="controls">
+  <button class="net" id="netBtn">⚡ 断开网络</button>
+  <span id="netState" style="color:var(--srv)">在线</span>
+  ｜ 我是 <b id="nodeId">…</b>
+</div>
+
+<textarea id="editor" placeholder="在这里输入…"></textarea>
+<div class="dirty" id="dirty"></div>
+<div id="log"></div>
+
+<!-- 三层结构：算法（rga.js）→ 数据层（client.js）→ 渲染层（app.js） -->
+<script type="module" src="app.js"></script>
+</body>
+</html>

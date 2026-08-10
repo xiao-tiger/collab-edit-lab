@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CRDT C2 · 迷你 RGA（真服务端）</title>
+<style>
+  :root {
+    --ink:#171717; --dim:#666; --border:#eaeaea; --panel:#fafafa;
+    --a:#0070f3; --b:#d97706; --srv:#059669; --bad:#dc2626;
+  }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; max-width: 760px; margin: 32px auto; padding: 0 16px; color: var(--ink); }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 0; }
+  .badge { font-family: ui-monospace, monospace; font-size: 12px; background: rgba(5,150,105,.08);
+           color: var(--srv); border: 1px solid var(--srv); border-radius: 999px; padding: 2px 10px; }
+  .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px;
+              background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+              padding: 10px 14px; margin: 18px 0; }
+  .controls label { color: var(--dim); cursor: pointer; }
+  textarea { width: 100%; height: 110px; box-sizing: border-box; padding: 10px; font-size: 15px;
+             border: 1px solid var(--border); border-radius: 8px; font-family: ui-monospace, monospace; }
+  .structLabel { font-size: 11px; color: var(--dim); margin: 10px 0 6px; }
+  .struct { display: flex; flex-wrap: wrap; gap: 3px; min-height: 30px; background: var(--panel);
+            border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+  .item { font-family: ui-monospace, monospace; font-size: 12px; background: #fff;
+          border: 1px solid var(--border); border-radius: 4px; padding: 3px 5px; }
+  .item .id { font-size: 9px; color: var(--dim); vertical-align: super; margin-left: 1px; }
+  .item.tomb { text-decoration: line-through; opacity: .45; background: #fafafa; }
+  #log { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-top: 14px;
+         padding: 8px 12px; height: 130px; overflow-y: auto; font-family: ui-monospace, monospace;
+         font-size: 12px; line-height: 1.7; }
+  #log .chaos { color: var(--bad); }
+  #meta { font-size: 12px; color: var(--dim); font-family: ui-monospace, monospace; }
+  .tip { background: rgba(0,112,243,.06); border-left: 3px solid var(--a); padding: 10px 14px;
+         font-size: 13px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+</style>
+</head>
+<body>
+<h1>Stage C2：迷你 RGA <span class="badge">真服务端 · 每个标签页 = 一个节点</span></h1>
+<p class="sub">每个字符 = <code>{id, left, deleted}</code>。合并 = 按 id 求并集。服务端只中转 + 存档，不定序。</p>
+
+<div class="tip">实验：<b>开两个标签页</b>同时打字 → 两边文本与结构一致；勾捣乱开关也一样。A 删一段的同时 B 往里打字 → B 的字<b>存活</b>（对照 OT 的 delete 吸收）。</div>
+
+<div class="controls">
+  <b>捣乱开关：</b>
+  <label><input type="checkbox" id="chaosDelay"> 随机延迟（乱序）</label>
+  <label><input type="checkbox" id="chaosDup"> 重复发送</label>
+  ｜ <span id="status">未连接</span> ｜ 我是 <b id="nodeId">…</b>
+</div>
+
+<textarea id="editor" placeholder="在这里输入…"></textarea>
+<p id="meta"></p>
+<p class="structLabel">内部结构（字符 + id 上标；删除线 = 墓碑）：</p>
+<div class="struct" id="struct"></div>
+<div id="log"></div>
+
+<!-- 三层结构：算法（rga.js）→ 数据层（client.js）→ 渲染层（app.js） -->
+<script type="module" src="app.js"></script>
+</body>
+</html>

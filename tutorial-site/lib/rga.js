@@ -1,7 +1,7 @@
 // ============================================================
 // 迷你 RGA —— 文本 CRDT
 //
-// 【教学副本】canonical 版本在 ../crdt/02-rga/rga.js，
+// 【教学副本】canonical 版本在 ../crdt/02-rga/public/rga.js，
 // 内容一致（此处仅改为 ESM export；副本是有意为之：每个阶段自包含可读）。
 //
 // Item = { id, left, ch, deleted }

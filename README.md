@@ -22,9 +22,9 @@ collab-edit-lab/
 │   ├── 04-cursor-stress/        光标 transform + 远端光标 + 机器人压测
 │   └── 05-persistence-undo/     持久化 + 快照截断 + 协同 undo
 ├── crdt/                # CRDT 篇（01~03 无需服务器，浏览器直接打开）
-│   ├── 01-counter-register/     G-Counter / LWW-Register：merge 三性质
-│   ├── 02-rga/                  迷你 RGA：每字符一个身份证（rga.js 的 canonical 版本）
-│   ├── 03-offline/              离线合并：断网分叉 → 重连互换最终状态收敛
+│   ├── 01-counter-register/     G-Counter / LWW-Register（真服务端：哑中转+存档）
+│   ├── 02-rga/                  迷你 RGA（真服务端；rga.js canonical 在 public/ 下）
+│   ├── 03-offline/              离线合并：真断网（ws.close）→ 重连互换快照收敛
 │   └── 04-yjs/                  Yjs 上手：哑服务端 + Awareness + IndexedDB
 ├── tutorial-site/       # 交互教程站（Nextra：落地页 + 六章 + 沙盒 + OT 可视化）
 └── package.json         # 统一 scripts 入口 + OT 篇共用的 ws 依赖
@@ -35,7 +35,9 @@ collab-edit-lab/
 | 脚本 | 内容 | 地址 |
 |---|---|---|
 | `npm run ot:0` ~ `ot:5` | OT 篇六个阶段 | :8000 ~ :8005 |
-| `npm run crdt:1` ~ `crdt:3` | CRDT 前三个阶段（`open` 打开本地文件） | — |
+| `npm run crdt:1` | C1 最简 CRDT（真服务端） | :8011 |
+| `npm run crdt:2` | C2 迷你 RGA（真服务端） | :8012 |
+| `npm run crdt:3` | C3 离线合并（真服务端 + 真断网） | :8013 |
 | `npm run crdt:4` | Yjs（自动先 build 再启动） | :8014 |
 | `npm run site` | 教程网站开发模式 | :8020 |
 
