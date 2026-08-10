@@ -52,114 +52,28 @@
 </div>
 
 <div class="arena">
-  <div class="node a" data-node="A"></div>
+  <div class="node a">
+    <h2>节点 A</h2>
+    <textarea id="taA" placeholder="在 A 输入…"></textarea>
+    <div class="structLabel">内部结构（字符 + id 上标；删除线 = 墓碑）：</div>
+    <div class="struct" id="structA"></div>
+  </div>
   <div class="pipe">
     <h3>网络管道</h3>
     <div id="netlog"></div>
   </div>
-  <div class="node b" data-node="B"></div>
+  <div class="node b">
+    <h2>节点 B</h2>
+    <textarea id="taB" placeholder="在 B 输入…"></textarea>
+    <div class="structLabel">内部结构（字符 + id 上标；删除线 = 墓碑）：</div>
+    <div class="struct" id="structB"></div>
+  </div>
 </div>
 <p id="verdict"></p>
 
+<!-- 三层结构：算法（rga.js）→ 数据层（sim.js）→ 渲染层（app.js） -->
 <script src="rga.js"></script>
-<script>
-  const A = { id: 'A', rga: makeRGA('A'), el: null, oldValue: '' };
-  const B = { id: 'B', rga: makeRGA('B'), el: null, oldValue: '' };
-  const nodes = { A, B };
-  const other = (id) => (id === 'A' ? 'B' : 'A');
-  const netlog = document.getElementById('netlog');
-  const verdict = document.getElementById('verdict');
-  const chaosDup = document.getElementById('chaosDup');
-  const chaosShuffle = document.getElementById('chaosShuffle');
-  let inFlight = 0;
-
-  function diffToOps(oldText, newText) {
-    let start = 0;
-    const minLen = Math.min(oldText.length, newText.length);
-    while (start < minLen && oldText[start] === newText[start]) start++;
-    let oldEnd = oldText.length, newEnd = newText.length;
-    while (oldEnd > start && newEnd > start && oldText[oldEnd - 1] === newText[newEnd - 1]) { oldEnd--; newEnd--; }
-    const ops = [];
-    if (oldEnd > start) ops.push({ kind: 'delete', pos: start, len: oldEnd - start });
-    if (newEnd > start) ops.push({ kind: 'insert', pos: start, str: newText.slice(start, newEnd) });
-    return ops;
-  }
-
-  // 本地输入 → RGA 操作（insert 逐字符链式：后一个字符的 left = 前一个的 id）
-  function onInput(node) {
-    const ops = diffToOps(node.oldValue, node.el.value);
-    for (const op of ops) {
-      if (op.kind === 'delete') rgaDelete(node.rga, op.pos, op.len);
-      else for (let i = 0; i < op.str.length; i++) rgaInsert(node.rga, op.pos + i, op.str[i]);
-    }
-    node.oldValue = node.el.value;
-    broadcast(node);
-    render();
-  }
-
-  // ---------- 虚拟网络：发送整个 Item 集合（状态型同步）----------
-  function broadcast(from) {
-    const snapshot = [...from.rga.items.values()].map((i) => ({ ...i }));
-    const to = other(from.id);
-    const jitter = chaosShuffle.checked ? Math.floor(Math.random() * 900) : 0;
-    send(to, from.id, snapshot, jitter, '');
-    if (chaosDup.checked) send(to, from.id, snapshot, jitter + 60, '（重复）');
-  }
-  function send(toId, fromId, snapshot, delay, tag) {
-    inFlight++;
-    nlog(`${fromId} → ${toId} ${snapshot.length} 个 Item ${tag}`);
-    setTimeout(() => {
-      inFlight--;
-      rgaMerge(nodes[toId].rga, snapshot);
-      // 合并后重渲染该节点文本（这就是"同步"）
-      const n = nodes[toId];
-      const text = rgaText(n.rga);
-      if (n.el.value !== text) { n.el.value = text; n.oldValue = text; }
-      render();
-    }, 400 + delay);
-  }
-  function nlog(text) {
-    const line = document.createElement('div');
-    if (text.includes('重复')) line.className = 'chaos';
-    line.textContent = text;
-    netlog.appendChild(line);
-    netlog.scrollTop = netlog.scrollHeight;
-  }
-
-  function render() {
-    for (const id of ['A', 'B']) renderNode(nodes[id]);
-    const same = rgaText(A.rga) === rgaText(B.rga) && A.rga.items.size === B.rga.items.size;
-    verdict.innerHTML = same && inFlight === 0
-      ? '<span class="ok">两端一致 ✅（文本与结构完全相同）</span>'
-      : '<span class="syncing">同步中…</span>';
-  }
-
-  function renderNode(node) {
-    const host = document.querySelector(`[data-node="${node.id}"]`);
-    if (!node.el) {
-      host.innerHTML = '';
-      const h = document.createElement('h2'); h.textContent = '节点 ' + node.id;
-      const ta = document.createElement('textarea');
-      ta.placeholder = `在 ${node.id} 输入…`;
-      ta.addEventListener('input', () => onInput(node));
-      const label = document.createElement('div'); label.className = 'structLabel';
-      label.textContent = '内部结构（字符 + id 上标；删除线 = 墓碑）：';
-      const struct = document.createElement('div'); struct.className = 'struct';
-      host.append(h, ta, label, struct);
-      node.el = ta; node.structEl = struct;
-    }
-    node.structEl.innerHTML = '';
-    for (const it of rgaSequence(node.rga, true)) {
-      const chip = document.createElement('span');
-      chip.className = 'item' + (it.deleted ? ' tomb' : '');
-      const ch = document.createElement('span'); ch.textContent = it.ch === ' ' ? '␣' : it.ch;
-      const idEl = document.createElement('span'); idEl.className = 'id'; idEl.textContent = it.id;
-      chip.append(ch, idEl);
-      node.structEl.appendChild(chip);
-    }
-  }
-
-  render();
-</script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

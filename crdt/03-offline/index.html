@@ -42,95 +42,22 @@
 </div>
 
 <div class="arena">
-  <div class="node a" data-node="A"></div>
-  <div class="node b" data-node="B"></div>
+  <div class="node a">
+    <h2>节点 A</h2>
+    <textarea id="taA" placeholder="在 A 输入…"></textarea>
+    <div class="dirty" id="dirtyA"></div>
+  </div>
+  <div class="node b">
+    <h2>节点 B</h2>
+    <textarea id="taB" placeholder="在 B 输入…"></textarea>
+    <div class="dirty" id="dirtyB"></div>
+  </div>
 </div>
 <p id="verdict"></p>
 
+<!-- 三层结构：算法（rga.js）→ 数据层（sim.js）→ 渲染层（app.js） -->
 <script src="rga.js"></script>
-<script>
-  const A = { id: 'A', rga: makeRGA('A'), el: null, oldValue: '', dirty: false };
-  const B = { id: 'B', rga: makeRGA('B'), el: null, oldValue: '', dirty: false };
-  const nodes = { A, B };
-  let online = true;
-
-  const netBtn = document.getElementById('netBtn');
-  const netState = document.getElementById('netState');
-  const verdict = document.getElementById('verdict');
-
-  function diffToOps(oldText, newText) {
-    let start = 0;
-    const minLen = Math.min(oldText.length, newText.length);
-    while (start < minLen && oldText[start] === newText[start]) start++;
-    let oldEnd = oldText.length, newEnd = newText.length;
-    while (oldEnd > start && newEnd > start && oldText[oldEnd - 1] === newText[newEnd - 1]) { oldEnd--; newEnd--; }
-    const ops = [];
-    if (oldEnd > start) ops.push({ kind: 'delete', pos: start, len: oldEnd - start });
-    if (newEnd > start) ops.push({ kind: 'insert', pos: start, str: newText.slice(start, newEnd) });
-    return ops;
-  }
-
-  function onInput(node) {
-    const ops = diffToOps(node.oldValue, node.el.value);
-    for (const op of ops) {
-      if (op.kind === 'delete') rgaDelete(node.rga, op.pos, op.len);
-      else for (let i = 0; i < op.str.length; i++) rgaInsert(node.rga, op.pos + i, op.str[i]);
-    }
-    node.oldValue = node.el.value;
-    if (online) syncNode(node);
-    else node.dirty = true; // 离线：只记一笔"我有未同步变更"，最终状态本身就在本地
-    render();
-  }
-
-  // 状态型同步：只发最终快照（离线期间的 N 次编辑被自然压缩成一份状态）
-  function syncNode(node) {
-    const snapshot = [...node.rga.items.values()].map((i) => ({ ...i }));
-    const target = nodes[node.id === 'A' ? 'B' : 'A'];
-    setTimeout(() => {
-      rgaMerge(target.rga, snapshot);
-      const text = rgaText(target.rga);
-      if (target.el.value !== text) { target.el.value = text; target.oldValue = text; }
-      render();
-    }, 300);
-  }
-
-  netBtn.addEventListener('click', () => {
-    online = !online;
-    netBtn.textContent = online ? '⚡ 断开网络' : '🔌 重新连接';
-    netBtn.className = online ? 'net' : 'net offline';
-    netState.textContent = online ? '在线' : '离线（两端各自编辑）';
-    netState.style.color = online ? 'var(--srv)' : 'var(--bad)';
-    if (online) {
-      // 重连：互换一次最终状态即收敛
-      if (A.dirty) { syncNode(A); A.dirty = false; }
-      if (B.dirty) { syncNode(B); B.dirty = false; }
-    }
-    render();
-  });
-
-  function render() {
-    for (const id of ['A', 'B']) {
-      const node = nodes[id];
-      const host = document.querySelector(`[data-node="${id}"]`);
-      if (!node.el) {
-        host.innerHTML = '';
-        const h = document.createElement('h2'); h.textContent = '节点 ' + id;
-        const ta = document.createElement('textarea');
-        ta.placeholder = `在 ${id} 输入…`;
-        ta.addEventListener('input', () => onInput(node));
-        const dirty = document.createElement('div'); dirty.className = 'dirty';
-        host.append(h, ta, dirty);
-        node.el = ta; node.dirtyEl = dirty;
-      }
-      node.dirtyEl.textContent = node.dirty ? '● 有未同步的本地变更' : '';
-    }
-    const same = rgaText(A.rga) === rgaText(B.rga);
-    verdict.innerHTML = same
-      ? '<span class="ok">两端一致 ✅</span>'
-      : (online ? '<span class="ok">同步中…</span>' : '<span class="offline">已分叉（离线中，重连即可合并）</span>');
-  }
-
-  render();
-</script>
+<script src="sim.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

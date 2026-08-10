@@ -1,15 +1,7 @@
 /* ============================================================
    Stage C2：迷你 RGA —— 文本 CRDT（约 80 行核心）
 
-   【canonical 版本】本文件是 rga.js 的源头；
-   crdt/03-offline/rga.js 是它的教学副本（有意为之：每阶段自包含）。
-
    核心思想：抛弃"位置坐标"，给每个字符发一张全局唯一的身份证：
-     Item = { id, left, ch, deleted }
-       id       全局唯一、可比较（站点id + 计数器，如 "B:3"）
-       left     插入时左边那个字符的 id（"我出生在谁右边"）
-       deleted  删除 = 打墓碑（不物理移除，否则后来者无法引用它）
-
    合并（状态型 CvRDT）：按 id 求并集 + 墓碑"删过即删"。
    排序（全副本一致地重建文本）：
      从根 DFS；同一 left 的并发兄弟按 id **降序**（"后来者居左"）。
@@ -25,17 +17,48 @@
    代价：墓碑膨胀、每字符带元数据（Yjs 的 YATA 做了大量压缩优化）
    ============================================================ */
 
+/**
+ * @typedef {Object} RgaItem
+ * @property {string} id        全局唯一、可比较的字符身份证（站点id:计数器，如 "B:3"）
+ * @property {string|null} left 插入时左边那个字符的 id；null 表示文档开头
+ * @property {string} ch        单个字符
+ * @property {boolean} deleted  是否已删除（墓碑；不物理移除，否则后来者无法引用它）
+ */
+
+/**
+ * @typedef {Object} RGA
+ * @property {string} siteId                 本节点 id，如 'A'
+ * @property {number} counter                本节点自增计数器（生成 id 用）
+ * @property {Map<string, RgaItem>} items    全部字符（含墓碑），key 为 id
+ */
+
+/**
+ * 创建一个 RGA 文档。
+ * @param {string} siteId 本节点 id（全局唯一），如 'A'
+ * @returns {RGA}
+ */
 function makeRGA(siteId) {
-  return { siteId, counter: 0, items: new Map() }; // Map<id, Item>
+  return { siteId, counter: 0, items: new Map() };
 }
 
+/**
+ * 生成下一个字符 id。
+ * @param {RGA} rga
+ * @returns {string} 形如 "A:3"
+ */
 function nextId(rga) {
   return `${rga.siteId}:${++rga.counter}`;
 }
 
 /* ---------- 本地编辑（针对"可见位置"）---------- */
 
-// 在可见位置 pos 插入一个字符；left = pos 左边那个可见字符的 id
+/**
+ * 在可见位置 pos 插入一个字符。
+ * @param {RGA} rga
+ * @param {number} pos  可见文本中的位置（0 = 最开头）
+ * @param {string} ch   单个字符
+ * @returns {RgaItem} 新建的字符项（left 指向 pos 左边那个可见字符）
+ */
 function rgaInsert(rga, pos, ch) {
   const seq = rgaSequence(rga);
   const left = pos === 0 ? null : seq[pos - 1].id;
@@ -44,7 +67,13 @@ function rgaInsert(rga, pos, ch) {
   return item;
 }
 
-// 删除可见位置 pos 起的 len 个字符（打墓碑）
+/**
+ * 删除可见位置 pos 起的 len 个字符（打墓碑）。
+ * @param {RGA} rga
+ * @param {number} pos
+ * @param {number} len
+ * @returns {void} 原地修改 rga（仅置 deleted 标记）
+ */
 function rgaDelete(rga, pos, len) {
   const seq = rgaSequence(rga);
   for (let i = pos; i < Math.min(pos + len, seq.length); i++) {
@@ -54,6 +83,13 @@ function rgaDelete(rga, pos, len) {
 
 /* ---------- 合并：集合并集 + 墓碑优先 ----------
    交换/结合/幂等全部由"并集"天然保证 —— 乱序、重复、离线随便来 */
+
+/**
+ * 把对方发来的 Item 快照合并进本文档。
+ * @param {RGA} into                      本文档（被原地修改）
+ * @param {RgaItem[]} snapshotItems       对方全部 Item 的数组快照
+ * @returns {void}
+ */
 function rgaMerge(into, snapshotItems) {
   for (const it of snapshotItems) {
     const cur = into.items.get(it.id);
@@ -62,7 +98,14 @@ function rgaMerge(into, snapshotItems) {
   }
 }
 
-/* ---------- 重建文本：从根 DFS，兄弟按 id 升序 ---------- */
+/* ---------- 重建文本：从根 DFS，兄弟按 id 降序 ---------- */
+
+/**
+ * 按 RGA 规则排出全副本一致的字符序列。
+ * @param {RGA} rga
+ * @param {boolean} [includeDeleted=false] 是否包含墓碑（结构可视化时传 true）
+ * @returns {RgaItem[]} 排序后的字符项数组（文本 = 各项 ch 拼接）
+ */
 function rgaSequence(rga, includeDeleted = false) {
   const children = new Map(); // leftId(null=根) → [items]
   for (const it of rga.items.values()) {
@@ -83,6 +126,11 @@ function rgaSequence(rga, includeDeleted = false) {
   return out;
 }
 
+/**
+ * 读出当前可见文本。
+ * @param {RGA} rga
+ * @returns {string}
+ */
 function rgaText(rga) {
   return rgaSequence(rga).map((i) => i.ch).join('');
 }

@@ -11,6 +11,15 @@
 npm run crdt:1   # 或 open crdt/01-counter-register/index.html
 ```
 
+## 文件结构（三层分离，按此顺序读）
+
+| 文件 | 层 | 职责 |
+|---|---|---|
+| `crdt-core.js` | 算法层 | G-Counter / LWW-Register 的状态与 merge（纯函数，canonical 版本） |
+| `sim.js` | 数据层 | 双节点 + 虚拟网络（延迟/乱序/重复）+ 同步流程，无 DOM |
+| `app.js` | 渲染层 | 把快照画出来、把用户操作转发给数据层 |
+| `index.html` | 结构 | 页面骨架与样式 |
+
 页面里模拟了两个对等节点（A / B），互发**整个状态的快照**做合并。
 
 ## 本阶段实现

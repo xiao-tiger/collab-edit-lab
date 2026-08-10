@@ -5,8 +5,17 @@
 ## 运行
 
 ```bash
-npm run crdt:2   # 或 open crdt/02-rga/index.html    # 无需服务器
+npm run crdt:2   # 或 open crdt/02-rga/index.html
 ```
+
+## 文件结构（三层分离，按此顺序读）
+
+| 文件 | 层 | 职责 |
+|---|---|---|
+| `rga.js` | 算法层 | RGA：Item、插入/删除、并集合并、序列重建（canonical 版本） |
+| `sim.js` | 数据层 | 双节点 + 虚拟网络 + diff 翻译 + 同步流程，无 DOM |
+| `app.js` | 渲染层 | textarea 绑定、Item 结构（墓碑）渲染 |
+| `index.html` | 结构 | 页面骨架与样式 |
 
 ## 核心思想：给每个字符发"身份证"
 

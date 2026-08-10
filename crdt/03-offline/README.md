@@ -5,8 +5,17 @@
 ## 运行
 
 ```bash
-npm run crdt:3   # 或 open crdt/03-offline/index.html    # 无需服务器
+npm run crdt:3   # 或 open crdt/03-offline/index.html
 ```
+
+## 文件结构（三层分离）
+
+| 文件 | 层 | 职责 |
+|---|---|---|
+| `rga.js` | 算法层 | RGA（教学副本，canonical 在 `crdt/02-rga/`） |
+| `sim.js` | 数据层 | 与 C2 同款 + 断网/重连逻辑（`setOnline(false)` 时 send 失败只记 dirty） |
+| `app.js` | 渲染层 | 断网按钮、未同步标记、文本同步 |
+| `index.html` | 结构 | 页面骨架与样式 |
 
 ## 实验
 
