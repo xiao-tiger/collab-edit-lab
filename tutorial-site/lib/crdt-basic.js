@@ -1,7 +1,7 @@
 // ============================================================
 // 最简 CRDT：G-Counter 与 LWW-Register
 //
-// 【教学副本】canonical 版本在 ../crdt/01-counter-register/crdt-core.js，
+// 【教学副本】canonical 版本在 ../crdt/01-counter-register/public/crdt-core.js，
 // 内容一致（此处仅改为 ESM export；副本是有意为之：每个阶段自包含可读）。
 //
 // CRDT 的收敛不依赖中心定序，靠的是 merge 满足三条数学性质：

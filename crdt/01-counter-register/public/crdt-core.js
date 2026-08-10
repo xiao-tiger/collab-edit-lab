@@ -1,5 +1,5 @@
 /* ============================================================
-   Stage C1：最简 CRDT —— G-Counter 与 LWW-Register
+   Stage C1：最简 CRDT（ESM 版：浏览器 <script type="module"> 与 Node import 通用） —— G-Counter 与 LWW-Register
 
    CRDT 的收敛不依赖中心定序，靠的是 merge 满足三条数学性质：
      交换律  merge(a, b) === merge(b, a)
@@ -32,7 +32,7 @@
  * 创建一个只增计数器状态。
  * @returns {GCounter} 初始状态 { counts: {} } 类型：Record<counts, Record<string, number>>
  */
-function makeGCounter() {
+export function makeGCounter() {
   return { counts: {} };  // counts: { A: 1, B: 1 }
 }
 
@@ -42,7 +42,7 @@ function makeGCounter() {
  * @param {string} nodeId 节点 id，如 'A'
  * @returns {void} 原地修改 g
  */
-function gInc(g, nodeId) {
+export function gInc(g, nodeId) {
   g.counts[nodeId] = (g.counts[nodeId] || 0) + 1;
 }
 
@@ -51,7 +51,7 @@ function gInc(g, nodeId) {
  * @param {GCounter} g
  * @returns {number}
  */
-function gValue(g) {
+export function gValue(g) {
   return Object.values(g.counts).reduce((a, b) => a + b, 0);
 }
 
@@ -61,7 +61,7 @@ function gValue(g) {
  * @param {GCounter} b
  * @returns {GCounter} 新状态，不修改入参
  */
-function gMerge(a, b) {
+export function gMerge(a, b) {
   const ids = new Set([...Object.keys(a.counts), ...Object.keys(b.counts)]);
   const counts = {};
   for (const id of ids) counts[id] = Math.max(a.counts[id] || 0, b.counts[id] || 0);
@@ -77,7 +77,7 @@ function gMerge(a, b) {
  * 创建一个寄存器状态。
  * @returns {Register} 初始状态 { value: '', n: 0, by: '' }
  */
-function makeRegister() {
+export function makeRegister() {
   return { value: '', n: 0, by: '' };
 }
 
@@ -88,7 +88,7 @@ function makeRegister() {
  * @param {string} nodeId 节点 id，如 'A'
  * @returns {void} 原地修改 reg
  */
-function regSet(reg, value, nodeId) {
+export function regSet(reg, value, nodeId) {
   reg.value = value;
   reg.n += 1;
   reg.by = nodeId;
@@ -100,7 +100,7 @@ function regSet(reg, value, nodeId) {
  * @param {Register} b
  * @returns {Register} 胜出的状态副本，不修改入参
  */
-function regMerge(a, b) {
+export function regMerge(a, b) {
   if (a.n !== b.n) return a.n > b.n ? { ...a } : { ...b };
   if (a.by === b.by) return { ...a };
   // a 和 b 同时进行了 修改，出现冲突，全局规定，只保留一个，约定以  by 来定也就是 nodeId

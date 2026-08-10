@@ -13,7 +13,8 @@ npm run crdt:2   # 或 open crdt/02-rga/index.html
 | 文件 | 层 | 职责 |
 |---|---|---|
 | `rga.js` | 算法层 | RGA：Item、插入/删除、并集合并、序列重建（canonical 版本） |
-| `sim.js` | 数据层 | 双节点 + 虚拟网络 + diff 翻译 + 同步流程，无 DOM |
+| `net.js` | 网络层 | 虚拟网络（教学副本，canonical 在 `crdt/01-counter-register/`） |
+| `sim.js` | 数据层 | 双节点同步流程（五段直线结构，canonical 版本） |
 | `app.js` | 渲染层 | textarea 绑定、Item 结构（墓碑）渲染 |
 | `index.html` | 结构 | 页面骨架与样式 |
 

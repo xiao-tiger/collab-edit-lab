@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>CRDT C1 · 最简 CRDT（真服务端）</title>
+<style>
+  :root {
+    --ink:#171717; --dim:#666; --border:#eaeaea; --panel:#fafafa;
+    --a:#0070f3; --b:#d97706; --srv:#059669; --bad:#dc2626;
+  }
+  body { font-family: -apple-system, 'PingFang SC', sans-serif; max-width: 640px; margin: 32px auto; padding: 0 16px; color: var(--ink); }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .sub { color: var(--dim); font-size: 14px; margin-top: 0; }
+  .badge { font-family: ui-monospace, monospace; font-size: 12px; background: rgba(5,150,105,.08);
+           color: var(--srv); border: 1px solid var(--srv); border-radius: 999px; padding: 2px 10px; }
+  .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; font-size: 13px;
+              background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+              padding: 10px 14px; margin: 18px 0; }
+  .controls label { color: var(--dim); cursor: pointer; }
+  .node { background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .node h2 { font-family: ui-monospace, monospace; font-size: 14px; margin: 0 0 12px; color: var(--a); }
+  .big { font-family: ui-monospace, monospace; font-size: 44px; font-weight: 700; }
+  .slots { font-family: ui-monospace, monospace; font-size: 12px; color: var(--dim); margin: 4px 0 12px; word-break: break-all; }
+  button { font-size: 14px; padding: 8px 18px; border: 1px solid var(--border); border-radius: 8px;
+           background: #fff; cursor: pointer; }
+  button:hover { border-color: #999; }
+  .reg { margin-top: 16px; border-top: 1px dashed var(--border); padding-top: 12px; }
+  .reg input { width: 100%; box-sizing: border-box; padding: 8px; font-size: 14px;
+               border: 1px solid var(--border); border-radius: 8px; }
+  .reg .ver { font-family: ui-monospace, monospace; font-size: 11px; color: var(--dim); margin-top: 6px; }
+  #log { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-top: 14px;
+         padding: 8px 12px; height: 140px; overflow-y: auto; font-family: ui-monospace, monospace;
+         font-size: 12px; line-height: 1.7; }
+  #log .chaos { color: var(--bad); }
+  .tip { background: rgba(0,112,243,.06); border-left: 3px solid var(--a); padding: 10px 14px;
+         font-size: 13px; border-radius: 0 8px 8px 0; margin: 14px 0; }
+</style>
+</head>
+<body>
+<h1>Stage C1：最简 CRDT <span class="badge">真服务端 · 每个标签页 = 一个节点</span></h1>
+<p class="sub">服务端只做中转 + 存档，不定序、不裁决。收敛完全靠各节点的 CRDT merge。</p>
+
+<div class="tip">实验：<b>再开一个标签页</b>（就是第二个节点），两边点 +1 / 写寄存器，对比两边 counts 是否一致；勾上捣乱开关也一样收敛。</div>
+
+<div class="controls">
+  <b>捣乱开关：</b>
+  <label><input type="checkbox" id="chaosDelay"> 随机延迟（乱序）</label>
+  <label><input type="checkbox" id="chaosDup"> 重复发送</label>
+  ｜ <span id="status">未连接</span>
+</div>
+
+<div class="node">
+  <h2>我是 <span id="nodeId">…</span></h2>
+  <div class="big" id="total">0</div>
+  <div class="slots" id="slots"></div>
+  <button id="incBtn">+1</button>
+  <div class="reg">
+    <input id="regInput" placeholder="写入寄存器…">
+    <div class="ver" id="regVer"></div>
+  </div>
+</div>
+
+<div id="log"></div>
+
+<!-- 三层结构：算法（crdt-core.js）→ 数据层（client.js）→ 渲染层（app.js） -->
+<script type="module" src="app.js"></script>
+</body>
+</html>
