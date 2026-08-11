@@ -1,47 +1,47 @@
+import OtLessonLab from '../components/OtLessonLab'
 import OtPlayground from '../components/OtPlayground'
 
-# Stage 0 · 全量文本广播
+# Stage 0 · 两个人的修改为什么互相覆盖
 
-每敲一个字，把整篇文档发给所有人 —— 后到者胜（last-write-wins）。最直觉，也最容易出事的办法。
+A、B 同时修改一份“项目周报”：
 
-## 动手实验
-
-<OtPlayground policy="fulltext" latency={600}>
-在两个框里**同时**快速打字 → 观察内容互相覆盖、服务端区域显示「已发散 ❌」
-</OtPlayground>
-
-## 为什么会出问题
-
-假设文档是 `"abc"`，同一瞬间：
-
-```
-A 在末尾敲 X → 发出全量 "abcX"
-B 在开头敲 Y → 发出全量 "Yabc"
-
-正确结果应是 "YabcX"，但两条全量文本互相覆盖：
-  A 收到 "Yabc" → 自己的 X 被抹掉
-  B 收到 "abcX" → 自己的 Y 被抹掉
+```text
+A 在开头添加“八月”
+B 在结尾添加“已完成”
 ```
 
-关键代码就三行，问题也在这三行里：
+正确结果应该同时保留两个人的内容。如果每次输入都发送完整字符串，服务端只能用后到的全文覆盖先到的全文。
+
+## 问题：全文只有结果，没有意图
 
 ```js
-// 客户端：每次输入，把整篇文档发出去
-editor.addEventListener('input', () => {
-  ws.send(JSON.stringify({ type: 'update', text: editor.value }));
-});
+// A 发送
+{ text: '八月项目周报' }
 
-// 服务端：全量覆盖，广播给其他人
-doc = msg.text;
-broadcast({ type: 'update', text: doc });
+// B 发送
+{ text: '项目周报已完成' }
 ```
 
-> **根因**：全量文本不携带「意图」。「在位置 3 插入 X」可以合并，「整篇变成 abcX」只能互相覆盖。另外收到更新直接覆盖 `textarea.value`，光标还会被拍飞。
+服务端不知道 A 做的是“在开头插入八月”，也不知道 B 做的是“在结尾插入已完成”。它只能选择其中一份。
 
-## 小结
+## 逐步观察覆盖过程
 
-**✅ 学会了什么**：协同 = 多端副本要收敛；last-write-wins 在并发下必然丢数据。
+切换“A 的全文先到”和“B 的全文先到”。到达顺序不同，只会改变谁的内容被丢掉。
 
-**⚠️ 还有什么问题**：并发互相覆盖、丢字；发散后双方毫无察觉；服务端不知道你改了哪。
+<OtLessonLab lesson="s0" />
 
-**→ 下一阶段**：不传全文，传「操作」—— insert / delete。
+## 自由实验
+
+下面保留自由输入沙盒。它适合在理解流程后亲手制造覆盖，不需要再把“同时快速输入”当成唯一学习方式。
+
+<OtPlayground policy="fulltext" latency={600}>
+在 A、B 输入不同内容，观察延迟广播如何覆盖本地文本。
+</OtPlayground>
+
+## 本章答案
+
+全量广播的问题不是 WebSocket，也不是网络慢，而是消息缺少可合并的修改意图。两个完整快照只能互相覆盖。
+
+## 留给下一章的问题
+
+如果不发送全文，改成发送 `insert(pos, text)` 和 `delete(pos, len)`，是不是就能保留双方修改？下一章先把输入变成操作。

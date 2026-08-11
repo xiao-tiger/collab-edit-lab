@@ -12,8 +12,9 @@ const OT_STAGES = [
   { href: '/stage1', num: '01', title: '操作化', desc: 'insert / delete，意图登场' },
   { href: '/stage2', num: '02', title: '版本定序', desc: 'rev + baseRev，冲突可检测' },
   { href: '/stage3', num: '03', title: 'transform', desc: 'OT 心脏，可视化逐拍播放' },
-  { href: '/stage4', num: '04', title: '光标与压测', desc: '光标 transform、远端光标、压力测试' },
-  { href: '/stage5', num: '05', title: '工程化', desc: '持久化 / 快照截断 / 协同 undo' },
+  { href: '/stage4', num: '04', title: '客户端状态', desc: 'pending / buffer、远端操作与光标' },
+  { href: '/stage5', num: '05', title: '快照与 Undo', desc: 'history 截断 / resync / 选择性撤销' },
+  { href: '/ot-practice', num: 'LAB', title: 'Mini Docs 实战', desc: '完整运行 rev、history、transform、Undo 与 resync' },
 ];
 const CRDT_STAGES = [
   { href: '/crdt1', num: 'C1', title: '合并与收敛', desc: '两条评论为什么同步后只剩一条' },
@@ -160,7 +161,7 @@ export default function Hero() {
         <h2 className={styles.mapTitle}>两套算法，两种世界观</h2>
         <div className={styles.routeGrid}>
           <div className={styles.route}>
-            <p className={styles.routeKicker}>路线一 · 6 章</p>
+            <p className={styles.routeKicker}>路线一 · 6 章 + 1 实战</p>
             <h3 className={styles.routeTitle}>OT <span>操作变换</span></h3>
             <p className={styles.routeDesc}>
               雇一个「总台」：所有人的每次修改都报给它排队编号；
@@ -172,8 +173,9 @@ export default function Hero() {
               <li>操作化：insert / delete 登场</li>
               <li>版本号：冲突变得可检测</li>
               <li>transform：修正坐标，不再丢编辑</li>
-              <li>光标与压力测试</li>
-              <li>持久化、快照与协同 undo</li>
+              <li>客户端状态：pending、buffer 与光标</li>
+              <li>快照、resync 与协同 Undo</li>
+              <li>整合实战：控制完整 OT 消息流</li>
             </ol>
             <Link href="/stage0" className={styles.routeBtn}>从第 0 章开始 →</Link>
           </div>

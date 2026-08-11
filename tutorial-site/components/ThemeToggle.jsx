@@ -1,6 +1,6 @@
 // 顶栏主题切换按钮：一键 light ⇄ dark（默认 light，见 theme.config.jsx）
 import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
+import { useTheme } from 'nextra-theme-docs';
 import styles from './ThemeToggle.module.css';
 
 export default function ThemeToggle() {

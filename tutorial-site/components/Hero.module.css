@@ -178,8 +178,13 @@
   font-family: ui-monospace, monospace; font-size: 13px; color: var(--srv);
   letter-spacing: .08em; margin: 26px 0 12px; text-align: center;
 }
-.cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
-.cardsCrdt { grid-template-columns: repeat(4, 1fr); }
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+}
+.cardsCrdt { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .card {
   position: relative; display: flex; flex-direction: column; gap: 8px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
@@ -200,10 +205,10 @@
 .card:hover .cardArrow { transform: translateX(4px); color: var(--a); }
 
 @media (max-width: 1100px) {
-  .cards, .cardsCrdt { grid-template-columns: repeat(3, 1fr); }
+  .cards, .cardsCrdt { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (max-width: 900px) {
-  .cards, .cardsCrdt { grid-template-columns: 1fr 1fr; }
+  .cards, .cardsCrdt { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .hero { padding-top: 64px; }
   .routeGrid { grid-template-columns: 1fr; }
 }

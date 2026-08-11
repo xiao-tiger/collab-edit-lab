@@ -1,64 +1,73 @@
-# Stage 5 · 持久化、快照与协同 undo
+import OtLessonLab from '../components/OtLessonLab'
 
-最后一站，把 demo 推向生产形态：文档落盘不丢、history 不无限膨胀、写错了能撤销——且不删别人的内容。
+# Stage 5 · History 不能无限增长，Undo 不能回退全文
 
-## 动手实验
+一个长期运行的文档会产生两个工程问题：
 
-```bash
-# 在仓库根目录（collab-edit-lab/）执行：
-npm run ot:5   # 或 node ot/05-persistence-undo/server.js   # http://localhost:8005，开两个标签页
-```
+1. `history` 越来越长，每次 transform 都要扫描更多操作；
+2. 多人环境中直接恢复旧全文，会把其他人的后续修改一起删除。
 
-三个实验：
+## 逐步观察选择性 Undo
 
-1. **undo 不影响别人**：A、B 各打一段字 → A 按 `Cmd/Ctrl+Z` → 只有 A 的内容消失
-2. **持久化**：打点字，`Ctrl+C` 停掉服务再重启 → 刷新页面，文档和 rev 原样恢复
-3. **快照**：点「🤖 压力测试」→ 看服务端日志多次出现 `[快照]`，文档依然收敛
+先演示 A 撤销自己的插入但保留 B 的“已审”，再切换到快照场景，观察太旧的操作为什么只能 resync。
 
-## 持久化
+<OtLessonLab lesson="s5" />
 
-每次变更把 `{ doc, rev, snapshotRev, history }` 落盘（教学版写 JSON 文件，生产写数据库），重启恢复。
+## Undo 是一条新的操作
 
-## 快照截断：能修则修，太老全量
-
-`history` 无限长意味着内存膨胀、回放变慢。策略：每 20 个操作做一次快照（`snapshotRev = rev`，清空 history）。
-
-代价：`baseRev < snapshotRev` 的请求错过的历史已截断，无法 transform 修正 → 回退为 **resync**（全量下发权威文档）。这正是真实系统的取舍——**能修则修，太老全量**；新客户端加载同理：读快照 + 增量。
-
-## 协同 undo
-
-并发下不能简单"回退文档"（那会删掉别人刚写的）。原则：**只撤销自己的操作，且不影响别人**。
+操作被服务端接受前，先根据当前文档计算 inverse：
 
 ```js
-// 1. 操作被接受时就把逆操作存进历史（delete 的逆 = 插回被删文本，要在应用前取）
-inverse(insert(pos, str)) = delete(pos, str.length)
-inverse(delete(pos, len)) = insert(pos, 被删文本)
+inverse(insert(pos, str))
+  = delete(pos, str.length)
 
-// 2. undo = 取出我的最近一个操作的 inverse，
-//    针对它之后的所有操作逐个 transform 到当前版本，作为正常操作应用
-let inv = history[i].inverse;
-for (const h of history.slice(i + 1)) inv = transform(inv, h.op, false);
+inverse(delete(pos, len))
+  = insert(pos, 被删除的原文字)
 ```
 
-要点：**undo 不是回退历史，而是一个新操作**——历史只增不减，变换数学不被破坏。客户端收到 undo 广播统一走"远端操作"分支（坐标是服务端生成的，本地从未应用过，有 pending 时照常变换——现有链路天然兼容）。
+真正撤销时，inverse 的坐标也可能已经过期，所以还要穿过目标操作之后的全部历史：
 
-## OT vs CRDT：什么时候换路线
+```js
+let undoOp = target.inverse
 
-| | OT | CRDT |
-|---|---|---|
-| 定序 | 中心化（服务端权威） | 无需中心，数学合并 |
-| 离线多天合并 | 痛苦 | 天然支持 |
-| P2P / 端到端加密 | 服务端要看懂内容才能 transform | 天然支持 |
-| 元数据开销 | 无 | 每字符带 ID、删除留墓碑 |
-| 代表 | Google Docs、ShareDB | Yjs、Automerge、Figma（自研） |
+for (const entry of history.slice(target.rev)) {
+  undoOp = transform(undoOp, entry.op, false)
+}
 
-## 生产化清单（本教程未覆盖的）
+applyAsNewOperation(undoOp)
+```
 
-- **compose / 批量**：排队操作组合成批再发，降低 RTT 压力
-- **富文本**：纯文本 OT 升级为树结构 OT，「delete 吸收」取舍才有解
-- **客户端 undo 栈**：教程的 undo 栈在服务端、随快照丢失；生产放客户端，可撤销更久
-- **横向扩展**：按文档分片，每个文档一个权威进程
+远端操作不进入用户的本地 Undo 栈；Undo/Redo 生成新的正常操作，继续获得 rev、进入 history 并广播。
 
-## 系列回顾
+## 快照截断
 
-全量广播（0）→ 操作化（1）→ 版本定序（2）→ transform（3）→ 光标与压力测试（4）→ 工程化（5）。继续深入：读 [ShareDB](https://github.com/share/sharedb) 源码，玩 [Yjs](https://github.com/yjs/yjs) 体验 CRDT 路线。
+服务端定期保存：
+
+```js
+{
+  doc,
+  rev,
+  snapshotRev: rev,
+}
+```
+
+然后清理旧 history。代价是 `baseRev < snapshotRev` 的离线操作已经找不到完整变换路径，只能回退为权威快照 resync。
+
+## 本章答案
+
+生产形态不是无限保存所有历史：近期操作用 history 精确 transform，太旧操作用快照恢复。选择性 Undo 通过“逆操作 + 后续 transform”只撤销自己的意图。
+
+## 六章回顾
+
+```text
+Stage 0：全文覆盖会丢修改
+Stage 1：操作坐标会漂移
+Stage 2：rev/baseRev 发现过期
+Stage 3：transform 修正旧坐标
+Stage 4：pending/buffer 保持客户端一致
+Stage 5：快照与 selective Undo 走向工程化
+```
+
+下一步不要只看生产清单。进入整合实战，自由控制 A、服务端、B 的操作与消息顺序，亲手完成一次完整 OT 协同流程。
+
+[进入 OT 整合实战 →](/ot-practice)

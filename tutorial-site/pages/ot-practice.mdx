@@ -1,0 +1,85 @@
+import OtPracticeLab from '../components/OtPracticeLab'
+
+# OT 整合实战 · 手写 Mini Docs
+
+六章结束后，不再增加新名词。这个实战把操作化、版本检测、transform、pending/buffer、快照和选择性 Undo 串成一条完整链路。
+
+## 你的任务
+
+1. 分别在 A、B 文本框修改“项目周报”，先不要投递消息；
+2. 查看两条 operation 的 `baseRev`；
+3. 反转客户端到服务端的顺序，决定权威时间线；
+4. 逐条投递消息，观察服务端如何 transform 后到操作；
+5. 按 rev 顺序把广播交给两个客户端；
+6. 尝试 Undo/Redo，确认只撤销指定用户的操作；
+7. 服务端做快照，再制造一条过老操作，观察 resync。
+
+<OtPracticeLab />
+
+## 实战中的真实状态
+
+```text
+客户端
+├── doc      本地立即显示的文本
+├── rev      已确认的服务端版本
+├── pending  已发送、未确认的一个操作
+└── buffer   pending 等待期间产生的后续操作
+
+服务端
+├── doc          权威文本
+├── rev          全局版本
+├── history      快照之后的操作历史
+├── snapshotRev  当前快照版本
+├── undoStacks   每个用户自己的逆操作栈
+└── redoStacks   每个用户自己的重做栈
+```
+
+## 一条操作的完整旅行
+
+```text
+A 本地输入
+→ diffToOps 生成 operation
+→ 立即应用到 A.doc
+→ 成为 pending，携带 baseRev 进入网络
+→ 服务端检查 baseRev
+→ 针对错过的 history 逐条 transform
+→ 应用到 server.doc，rev + 1
+→ 广播修正后的 operation
+→ 作者收到 ack，发送下一条 buffer
+→ 其他客户端针对本地 pending/buffer 双侧 transform
+→ 三方收敛
+```
+
+## 为什么网络消息不能随便乱序
+
+客户端提交给服务端的并发操作可以以不同顺序到达，服务端以实际接收顺序建立权威时间线。但同一个客户端接收服务端广播时，必须按照递增 rev 处理。
+
+实战会阻止客户端跳过前序 rev：
+
+```text
+客户端当前 rev=1
+先收到 rev=3
+→ 暂不应用，继续等待 rev=2
+```
+
+这和 CRDT 对消息乱序天然免疫不同，是 OT 对有序权威操作流的重要要求。
+
+## Selective Undo/Redo
+
+Undo 请求不会让客户端恢复旧全文。服务端找到这个用户最近的 inverse，把它穿过之后的 history，再作为一个新操作获得新的 rev。
+
+```js
+let undoOp = target.inverse
+
+for (const entry of historyAfterTarget) {
+  undoOp = transform(undoOp, entry.op, false)
+}
+
+applyAsNewOperation(undoOp)
+```
+
+因此另一个用户在目标操作之后写入的内容会被保留。
+
+## 实战完成标准
+
+尝试让 A 在开头插入“八月”，B 在结尾插入“已完成”。无论哪条操作先到服务端，最终 A、服务端、B 都必须显示同一份文本；随后撤销 A 的操作，B 的“已完成”仍然存在。

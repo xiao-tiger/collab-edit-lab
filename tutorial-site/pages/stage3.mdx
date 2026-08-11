@@ -1,100 +1,54 @@
-import OtPlayground from '../components/OtPlayground'
+import OtLessonLab from '../components/OtLessonLab'
 import OtVisualizer from '../components/OtVisualizer'
-import ConvergenceDiagram from '../components/ConvergenceDiagram'
+import OtPlayground from '../components/OtPlayground'
 
-# Stage 3 · transform（OT 的心脏）
+# Stage 3 · 过期坐标怎样被修正
 
-过期操作过期的不是版本号，而是**坐标**。`transform` 把坐标从旧版本「换算」到新版本——换算完照常接受，编辑不再丢。
+B 的 `delete(3,1)` 基于旧文档，服务端已经先接受了 A 在开头插入的两个字。B 真正想删除的“报”从位置 3 移到了位置 5。
 
-## 可视化播放器
+`transform` 的任务不是决定谁输谁赢，而是回答：
 
-四个预设场景，建议先「单步」逐拍观察，再「自动播放」连贯看一遍。观看要点：操作包怎么飞、服务端红色算式卡片里的坐标修正、B 收到 A 操作时的「本地变换」、最后三方校验值一致。
+> `other` 已经应用后，怎样修改 `op` 的坐标，才能继续表达原来的意图？
+
+## 先理解一次坐标换算
+
+默认演示“插入 × 删除”，再切换到“同位置插入”，观察全局裁决规则为什么必须一致。
+
+<OtLessonLab lesson="s3" />
+
+## 四组基础规则
+
+| 我的操作 | 已经应用的 other | 处理方向 |
+|---|---|---|
+| insert | insert | other 在左侧则右移；同位置按统一顺序裁决 |
+| insert | delete | 左侧删除则左移；插入点被删除覆盖时作废 |
+| delete | insert | 左侧插入则右移；插入落入删除区间时被吸收 |
+| delete | delete | 去掉双方重叠部分，只删除剩余区间 |
+
+核心收敛条件是：
+
+```js
+applyOp(applyOp(doc, a), transform(b, a))
+===
+applyOp(applyOp(doc, b), transform(a, b))
+```
+
+## 进阶播放器
+
+下面的播放器真实调用站点 `lib/ot.js` 中的算法。完成默认场景后，再看同位置插入、删除重叠和 delete 吸收。
 
 <OtVisualizer />
 
-## transform 是什么
-
-```js
-transform(op, other, opIsLeft) → 新 op
-// 前提：other 已应用；返回与 op 意图等效、可安全应用在 other 之后的操作
-```
-
-收敛性质（整个 OT 的地基）：无论先 a 后 b' 还是先 b 后 a'，结果相同：
-
-```js
-apply(apply(doc, a), b') === apply(apply(doc, b), a')
-```
-
-### 收敛性图解
-
-<ConvergenceDiagram />
-
-上图的例子：文档 `"abc"`，A 在 1 处插入 `X`、B 在 2 处插入 `Y`（并发）。
-1. 左臂：A 先应用自己的 `insert(1,'X')`，再应用**变换后的** `B' = insert(3,'Y')`（B 的插入点被 A 的插入挤后了一位）；
-2. 右臂：B 先应用自己的 `insert(2,'Y')`，再应用 `A' = insert(1,'X')`（A 在 B 前面，不受影响）。
-3. 两条路径终点都是 `"aXbYc"`——这就是 transform 存在的意义。
-
-### 四条规则（insert/delete 两两组合）
-
-| 我的 op | 遇到的 other | 修正规则 |
-|---|---|---|
-| insert(p) | insert(p₂) | p₂ < p → 右移；**p₂ = p → 排后面的右移**（opIsLeft 裁决，规则任意但全局一致） |
-| insert(p) | delete(p₂,l₂) | 被删区间在我左边 → 左移；**插入点被覆盖 → 作废为空操作** |
-| delete(p,l) | insert(p₂) | 插入在我左边 → 右移；**插进我的删除区间 → 吸收**（len += 一起删） |
-| delete(p,l) | delete(p₂,l₂) | 不相交 → 左移；**重叠 → 重叠部分对方已删，只删剩下的** |
-
-> **TP1 陷阱**：规则二曾经写成「插入点落进被删区间 → 挪到区间起点保留」，结果与规则三（吸收）生死裁决矛盾——同一个并发插入，一个方向判活、另一个判死，两端必然发散。所以必须统一为「delete 赢」：吸收 ↔ 作废。这个 bug 正是上面播放器的场景测试抓出来的。
-
-### 难点拆解：opIsLeft 到底是什么
-
-`transform(op, other, opIsLeft)` 的第三个参数，只在一种情况下起作用：**两个 insert 落在同一位置**。
-
-```
-文档 "abc"，A: insert(1,'X')，B: insert(1,'Y') —— 同一位置！
-```
-
-坐标完全一样，数学上看不出谁先谁后。但最终只能有一个顺序（`"aXYbc"` 还是 `"aYXbc"`？），而且**所有副本必须得出同一个答案**。这就是 opIsLeft 的职责：它是一个全局一致的"裁决规则"——**在服务端最终定序里，排前面的（left）原地不动，排后面的右移**。
-
-关键是搞懂"谁是 left"。三处调用，opIsLeft 的含义都是同一个：**"op 在服务端最终顺序里，是否先于 other"**：
-
-```js
-// ① 服务端修正过期操作：history 里的操作先被接受（left），新来的操作是后到（right）
-op = transform(op, historyOp, false)
-
-// ② 客户端把远端操作应用到本地：远端操作已被服务端接受（left），我的 pending 还未被接受（right）
-opPrime = transform(remoteOp, myPending, true)   // remoteOp 是 left → true
-// ③ 客户端同步变换自己的 pending：pending 后到（right）
-myPending = transform(myPending, remoteOp, false)
-```
-
-**如果两端裁决不一致会怎样？** 假设 B 擅自改成"后到者不动"：服务端得到 `"aXYbc"`（A 先被接受），B 本地得到 `"aYXbc"`——两端都"自洽"，但内容不同，而且没有任何机制能发现。这就是 OT 最阴险的 bug 类型：**规则本身不重要，全局一致才重要**。对照 CRDT 篇你会发现：RGA 用"字符 id 降序"解决同一个问题——id 天生可比较，裁决不需要中心协调。
-
-> 注意 transform 卡片在「同位置插入对撞」场景播放时，规则行会显示 opIsLeft 裁决的具体演算，可以对照着看。
-
-### 服务端：拒绝换成修正
-
-```js
-if (msg.baseRev !== rev) {                              // 过期？
-  const missed = history.slice(msg.baseRev);            // 它错过的所有操作
-  for (const h of missed) op = transform(op, h, false); // 逐个修正坐标
-}
-// 然后正常接受、定序、广播 —— 不再拒绝！
-```
-
-### 客户端：双侧变换
-
-服务端修好了坐标，但本地 textarea 早就按旧坐标应用过操作。所以收到远端操作时要：① 把它针对自己未确认的 pending/buffer 变换后再应用；② 同步变换 pending/buffer 保持坐标有效。回执到达时 textarea 完全不用动——收敛性质保证殊途同归。
-
-## 自由沙盒
+## 自由实验
 
 <OtPlayground policy="transform" latency={800}>
-两个框随便同时乱打 → 队列清空后校验值必然一致。日志里能看到「修正」事件
+随意同时输入；队列清空后，A、服务端和 B 应保持一致。
 </OtPlayground>
 
-## 小结
+## 本章答案
 
-**✅ 学会了什么**：transform 四条规则；服务端用 history 修正过期操作；客户端 pending/buffer 双侧变换；回执自校验。
+服务端针对 `history.slice(baseRev)` 逐个 transform 过期操作，再把修正后的操作当作正常操作接受。用户的坐标可能改变，修改意图仍然保留。
 
-**⚠️ 还有什么问题**：delete 会吸收区间内的并发插入（语义取舍）；光标仍是朴素调整；无持久化 / undo。
+## 留给下一章的问题
 
-**→ 下一阶段**：工程化打磨——走向生产要解决的问题清单。
+服务端已经得到正确文档，但客户端在收到回执前就提前显示了本地输入。如果远端操作此时到达，客户端本地比服务端多出 pending 和 buffer，怎样继续换算？

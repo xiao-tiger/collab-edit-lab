@@ -1,56 +1,60 @@
+import OtLessonLab from '../components/OtLessonLab'
 import OtPlayground from '../components/OtPlayground'
 
-# Stage 4 · 光标与压力测试
+# Stage 4 · pending、buffer 和光标怎样修正
 
-算法对了，还要把 OT 的能力扩展到**光标**这类瞬时状态，并用自动化压力测试证明：高压乱序下依然收敛。
+为了让输入没有网络延迟，客户端会立即把本地操作应用到编辑框，再把它作为 `pending` 发给服务端。快速继续输入时，后续操作进入 `buffer`。
 
-## 动手实验
-
-<OtPlayground policy="transform" latency={800}>
-热身：两个框同时乱打，队列清空后校验值必然一致
-</OtPlayground>
-
-本章的完整能力在可运行 demo 里（远端光标、机器人压测）：
-
-```bash
-# 在仓库根目录（collab-edit-lab/）执行：
-npm run ot:4   # 或 node ot/04-cursor-stress/server.js   # http://localhost:8004，开两个标签页
+```text
+本地文档 = 服务端已确认状态 + pending + buffer
 ```
 
-## 光标也要 transform
+因此远端操作不能直接应用到本地文档。它必须穿过 pending 和 buffer；与此同时，本地未确认操作也要针对远端操作做对称变换。
 
-远端操作到达时，本地光标得跟着挪。Stage 1 以来我们是手写朴素规则，其实不用——**把光标看成一个空串 insert，直接复用 transform**：
+## 逐步观察客户端双侧变换
+
+先观察 pending/buffer，再切换到远端光标。算法区会显示远端操作和本地操作怎样同时更新。
+
+<OtLessonLab lesson="s4" />
+
+## 为什么只能有一个 pending
+
+如果连续三次输入都立刻发送，它们可能都携带同一个 `baseRev`，然后被自己的前一个操作变成过期消息。
+
+正确流水线是：
+
+```text
+本地输入 → pending → 等待回执
+后续输入 → buffer
+pending 收到回执 → 从 buffer 取下一条发送
+```
+
+## 光标为什么也要 transform
+
+光标位置同样是数字坐标。可以把光标看成一次插入空字符串的位置：
 
 ```js
 function transformPos(pos, op) {
-  return transform({ kind: 'insert', pos, str: '' }, op, false).pos;
+  return transform(
+    { kind: 'insert', pos, str: '' },
+    op,
+    false,
+  ).pos
 }
 ```
 
-两个精妙之处：
+光标、选区、在线名单属于临时 Presence，不进入文档 `history`；但过期坐标仍然需要经过服务端历史和客户端 pending 两段修正。
 
-- 删除区间覆盖光标时，"作废"返回值恰好把光标夹在删除起点——白送的正确行为
-- `opIsLeft` 恒为 `false`：同位置并发插入时光标跟随后到文本。**裁决方向两端必须全局一致**，否则你我看到的光标位置错位——和操作的同位置裁决是同一个道理
+## 自由压力实验
 
-## 远端光标：分两段修正
+<OtPlayground policy="transform" latency={800}>
+在两个客户端连续快速输入和删除，观察 pending/buffer 日志以及最终校验值。
+</OtPlayground>
 
-光标消息 `{ type:'cursor', pos, baseRev, from }` 不定序、不进 history，但同样会过期：
+## 本章答案
 
-1. **服务端**：针对 `history[baseRev..rev-1]` 逐个修正再转发
-2. **客户端**：收到后若本地还有未确认操作（pending/buffer），再针对它们换算一次——因为本地文档 = 服务端文档 + 未确认操作
+OT 不只是服务端 transform。客户端必须维护 pending/buffer，对远端操作和本地未确认操作做双侧变换，才能让“本地立即显示”和“最终权威顺序”同时成立。
 
-demo 里编辑器下方有"文档镜像"：蓝线是我的光标，橙线是对方的，实时跟随。
+## 留给下一章的问题
 
-## 压力测试：收敛性的硬证据
-
-demo 页点「🤖 机器人压力测试」：70ms 间隔随机插入/删除共 80 次，**走和真人输入完全相同的链路**（textarea → input 事件 → diff → 发送）。两个标签页同时跑，等队列清零后对比校验值——必然一致。
-
-> 教学意义：OT 的正确性不是靠"我试了下没坏"，而是随机高压下的**确定性收敛**。
-
-## 小结
-
-**✅ 学会了什么**：光标换算复用 transform（空串 insert 技巧）；远端光标的两段修正；压力测试方法论。
-
-**⚠️ 还有什么问题**：文档重启就丢；history 无限膨胀；写错了没法撤销。
-
-**→ 下一阶段**：持久化 + 快照截断 + 协同 undo。
+算法已经可以长期编辑，但服务重启会丢文档、history 会无限增长，Undo 也不能简单恢复旧全文。最后一章处理持久化、快照和选择性撤销。
