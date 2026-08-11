@@ -1,38 +1,51 @@
-# C4 · 上手 Yjs（工业级 CRDT）
+import CrdtLessonLab from '../components/CrdtLessonLab'
 
-用工业级库搭真协同编辑器。你会发现 Yjs 的每个概念，都有我们手写过的对应物——这就是先造轮子的回报。
+# C4 · 被删除的标签为什么又复活了
 
-## 动手实验
+文档原来有标签“需求”。A 删除它，B 还没有收到删除，双方随后同步：
 
-Yjs 需要真实服务端（虽然它只是个哑管道），在可运行 demo 里玩：
-
-```bash
-npm run crdt:4   # → http://localhost:8014，开两个标签页
+```text
+A 的标签：[]
+B 的标签：[需求]
 ```
 
-实验：① 同时打字 → 收敛（没有任何"回执/修正"——CRDT 不需要）② **停掉服务端**继续打字 → 刷新页面内容还在（IndexedDB）→ 重启服务端 → 自动合并 ③ DevTools 看 WS 帧：二进制编码 + 增量同步
+如果集合合并只是取并集：
 
-## 概念映射表（手写的 → 工业的）
+```text
+[] ∪ [需求] = [需求]
+```
 
-| 我们手写的 | Yjs 里的对应 | 说明 |
-|---|---|---|
-| RGA items + Map（C2） | `Y.Doc` + `Y.Text` | 内部是 YATA 算法：解决 RGA 交错问题，自动合并相邻 Item 控制体积 |
-| 全量快照互换（C2/C3） | sync step | 增量同步：状态向量只交换缺失的更新 |
-| Stage 4 的光标同步 | `provider.awareness` | 临时状态（光标/选区/在线名单）专用通道，不落文档 |
-| Stage 5 的 data.json | `IndexeddbPersistence` | 浏览器本地持久化：刷新、断网重开都在 |
-| OT 的中心定序服务端 | y-websocket 服务端 | **哑管道**：不定序、不变换、不理解内容 |
+刚刚删除的标签复活了。问题是“空数组”没有记录这个标签曾经被删除过。
 
-## 代码结构（~60 行）
+## 给每次新增一张身份证
 
-- `server.js`：静态服务 + `setupWSConnection`（房间 = WS 路径）
-- `client.js`：`Y.Doc` ↔ textarea 双向绑定（diff + `ydoc.transact`）+ Awareness 在线名单 + IndexedDB
+每次新增都生成一个唯一事件 ID，也叫 `dot`：
 
-## 继续深入
+```text
+第一次添加需求 → 需求@S1
+删除需求       → 删除 S1
+重新添加需求   → 需求@B1
+```
 
-- `Y.UndoManager`：对照 Stage 5 手写的 undo（客户端栈、只撤销自己）
-- 富文本：`Y.XmlFragment` + TipTap/Quill
-- YATA 论文：Yjs 作者 Kevin Jahns 的算法细节
+删除针对的是自己已经见过的新增事件，而不是模糊地写一句“需求不存在”。
 
-## 系列回顾
+## 动手观察 dot 和墓碑
 
-OT 篇（0~5）证明你能在中心化世界观里从零推到生产形态；CRDT 篇（C1~C4）证明你理解去中心化收敛的数学根基。至此，协同编辑的核心版图你已经全部走通。
+默认使用 Add-Wins。走完后切换到 Remove-Wins，比较同一次并发为什么会得到不同业务结果。
+
+<CrdtLessonLab lesson="c4" />
+
+## Add-Wins 和 Remove-Wins
+
+它们都能收敛，区别是产品选择：
+
+```text
+Add-Wins：并发的新 dot 没被删除，所以元素存在
+Remove-Wins：并发删除优先，所以元素不存在
+```
+
+CRDT 保证大家算出同一个答案，但不会替产品决定哪种答案更合理。普通文档标签常用 Add-Wins；权限关闭、安全状态更适合 Remove-Wins 或服务端权威。
+
+## 留给下一章的问题
+
+一份真实文档同时拥有标题、标签、发布状态和正文。难道要把整份文档交给一个 Register 或 Set 吗？下一章使用 Map CRDT 把不同类型组合起来。

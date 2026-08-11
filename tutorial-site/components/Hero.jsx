@@ -16,10 +16,13 @@ const OT_STAGES = [
   { href: '/stage5', num: '05', title: '工程化', desc: '持久化 / 快照截断 / 协同 undo' },
 ];
 const CRDT_STAGES = [
-  { href: '/crdt1', num: 'C1', title: '最简 CRDT', desc: 'merge 三性质：交换 / 结合 / 幂等' },
-  { href: '/crdt2', num: 'C2', title: '迷你 RGA', desc: '每字符一个身份证，合并 = 并集' },
-  { href: '/crdt3', num: 'C3', title: '离线合并', desc: '断网分叉 → 重连互换状态即收敛' },
-  { href: '/crdt4', num: 'C4', title: '上手 Yjs', desc: '工业级 CRDT：哑服务端 + 离线持久化' },
+  { href: '/crdt1', num: 'C1', title: '合并与收敛', desc: '两条评论为什么同步后只剩一条' },
+  { href: '/crdt2', num: 'C2', title: '版本向量', desc: '判断修改是先后发生还是离线并发' },
+  { href: '/crdt3', num: 'C3', title: 'Register', desc: '两个并发标题最终显示哪一个' },
+  { href: '/crdt4', num: 'C4', title: 'Set 与删除', desc: 'dot 与墓碑阻止标签意外复活' },
+  { href: '/crdt5', num: 'C5', title: 'Map 文档', desc: '标题、状态和标签按字段分别合并' },
+  { href: '/crdt6', num: 'C6', title: 'Sequence 正文', desc: '段落身份证、锚点与并发插入' },
+  { href: '/crdt-practice', num: 'LAB', title: 'Mini Doc 实战', desc: '组合三种 CRDT，亲手控制网络并完成收敛' },
 ];
 
 /* ---------- 实况动画脚本：A/B 交替打出「协同编辑 OT」 ---------- */
@@ -141,8 +144,8 @@ export default function Hero() {
           <a href="#routes" className={styles.ctaGhost}>先看看两条路线 ↓</a>
         </div>
         <div className={styles.stats}>
-          <span><b>10</b> 个递进章节</span><i />
-          <span><b>7</b> 个可玩沙盒</span><i />
+          <span><b>12</b> 个递进章节</span><i />
+          <span><b>每章</b> 都能动手操作</span><i />
           <span><b>1</b> 场算法可视化</span><i />
           <span><b>0</b> 空话，全部真实代码</span>
         </div>
@@ -175,18 +178,21 @@ export default function Hero() {
             <Link href="/stage0" className={styles.routeBtn}>从第 0 章开始 →</Link>
           </div>
           <div className={styles.route}>
-            <p className={styles.routeKicker}>路线二 · 4 章</p>
+            <p className={styles.routeKicker}>路线二 · 6 章 + 1 实战</p>
             <h3 className={styles.routeTitle}>CRDT <span>无冲突数据类型</span></h3>
             <p className={styles.routeDesc}>
-              不要总台：给每个字符发一张全局唯一的「身份证」，
-              修改无论按什么顺序、隔多久传来，<b>数学保证</b>合并出同一个结果。
+              不要总台：每个副本都能先修改自己的文档，
+              消息无论按什么顺序、隔多久传来，都按同一套规则<b>合并收敛</b>。
             </p>
             <p className={styles.routeMeta}>离线编辑 / P2P / 端到端加密的首选</p>
             <ol className={styles.routeSteps}>
-              <li>最简 CRDT：合并的三条数学性质</li>
-              <li>迷你 RGA：给字符发身份证</li>
-              <li>离线合并：断网改完，重连即收敛</li>
-              <li>Yjs 实战：工业级 CRDT 库</li>
+              <li>合并与收敛：两条评论不再丢失</li>
+              <li>版本向量：看过后修改还是离线并发</li>
+              <li>Register：两个标题如何选择</li>
+              <li>Set：标签删除、重加与墓碑</li>
+              <li>Map：组合标题、状态和标签</li>
+              <li>Sequence：段落与正文并发插入</li>
+              <li>整合实战：让一份 Mini Doc 经历并发后重新收敛</li>
             </ol>
             <Link href="/crdt1" className={styles.routeBtn}>从 C1 开始 →</Link>
           </div>

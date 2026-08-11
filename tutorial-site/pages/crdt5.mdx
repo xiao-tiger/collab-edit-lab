@@ -1,0 +1,56 @@
+import CrdtLessonLab from '../components/CrdtLessonLab'
+
+# C5 · 改标题为什么覆盖了发布状态
+
+初始文档是：
+
+```js
+{
+  title: '周报',
+  status: '草稿'
+}
+```
+
+A 离线把标题改成“八月周报”，B 同时把状态改成“已发布”。如果双方互相发送完整 JSON 快照并覆盖，必然会丢掉一个人的修改。
+
+## 不给整份文档一个总版本
+
+Map CRDT 把冲突缩小到具体字段：
+
+```text
+document
+├── title  → Register
+├── status → Register
+├── tags   → OR-Set
+└── body   → 下一章的 Sequence
+```
+
+Map 本身负责 key 的新增和删除，每个 value 再使用适合自己的 CRDT。
+
+## 动手进行字段级合并
+
+先观察修改不同字段时如何全部保留，再切换到“修改同一字段”，看冲突如何交给字段内部的 Register。
+
+<CrdtLessonLab lesson="c5" />
+
+## 为什么字段粒度重要
+
+如果整份文档只有一个版本：
+
+```text
+A 改标题 × B 改状态 → 只能保留一份快照
+```
+
+如果每个字段独立：
+
+```text
+title 选择 A 的版本
+status 选择 B 的版本
+tags 合并双方的 dot
+```
+
+不同意图不再互相覆盖；真正的冲突只发生在同一个字段内部。
+
+## 留给下一章的问题
+
+Map 适合按 key 查找的数据，却无法表达段落顺序。A、B 同时在第二段插入内容时，数组下标会过期。下一章进入文档协同最核心的 Sequence CRDT。

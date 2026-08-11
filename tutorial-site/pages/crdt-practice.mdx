@@ -1,0 +1,117 @@
+import CrdtPracticeLab from '../components/CrdtPracticeLab'
+
+# CRDT 整合实战 · 手写 Mini Doc
+
+前六章分别学习了 Register、Set、Map 和 Sequence。现在不再学习新名词，而是把它们组合成一份真正可以协同修改的小文档。
+
+## 你的任务
+
+这次没有固定的“下一步”。你要自己制造并发，再让两份文档恢复一致：
+
+1. 不投递消息，先在副本 A 修改标题、标签或段落；
+2. 在副本 B 做不同修改，观察两份文档分叉；
+3. 查看网络管道中的状态快照；
+4. 反转队列或重复消息，模拟不可靠网络；
+5. 在任一副本点击“撤销我的操作”，观察 Undo 也进入网络管道；
+6. 逐条点击投递，或者一次投递全部消息；
+7. 如果仍未完全一致，点击“双向发送当前状态”再同步一轮。
+
+<CrdtPracticeLab />
+
+## 这个实战组合了什么
+
+```text
+Mini Doc
+├── title  → LWW Register
+├── tags   → OR-Set
+└── blocks → Sequence CRDT
+```
+
+每次本地操作都会立即修改自己的副本，然后把当前 CRDT 状态放进网络管道。接收方不会用远端文档直接覆盖自己，而是逐字段执行 `merge`。
+
+## 协同 Undo 不是把整个文档倒带
+
+单机编辑器可以保存一份旧快照，Undo 时直接恢复。但多人协作中这样做，会把别人的后续修改一起抹掉。
+
+这个实战使用选择性 Undo：
+
+```text
+A 的 Undo 只读取 A 的本地操作栈
+远端 merge 不进入 A 的 Undo 栈
+Undo 生成一条新的 CRDT 操作
+新操作继续通过网络同步给 B
+```
+
+不同数据结构的撤销方式也不同：
+
+```text
+撤销标题修改 → 写入一个 stamp 更新的新标题版本
+撤销新增标签 → 删除当时新增的那个 dot
+撤销删除标签 → 使用新 dot 重新添加
+撤销新增段落 → 把对应节点标记为墓碑
+撤销删除段落 → 创建新节点重新插入，不复活旧墓碑
+```
+
+因此 Undo/Redo 之后会看到 Lamport counter、dot 或节点 ID 继续增长。这是在不覆盖别人修改的前提下表达“反向意图”。
+
+## 核心合并代码
+
+```js
+function mergeDoc(local, remote) {
+  return {
+    title: mergeRegister(local.title, remote.title),
+    tags: mergeORSet(local.tags, remote.tags),
+    blocks: mergeSequence(local.blocks, remote.blocks),
+  }
+}
+```
+
+其中三种字段使用不同算法：
+
+```js
+// 标题：stamp 较大的版本获胜
+title = compareStamp(a.stamp, b.stamp) >= 0 ? a : b
+
+// 标签：新增 dot 与删除墓碑分别取并集
+adds = union(a.adds, b.adds)
+removes = union(a.removes, b.removes)
+
+// 段落：按节点 ID 求并集，删除状态只会从 false 变成 true
+for (const item of remoteBlocks) {
+  joinItem(localBlocks, item)
+}
+```
+
+## 四个进阶挑战
+
+### 挑战一：同字段冲突
+
+A、B 同时修改标题，先交换消息，再让失败的一方重新修改。观察新的 Lamport counter 为什么能覆盖前两个并发版本。
+
+### 挑战二：删除和插入并发
+
+A 删除“开场”段落，B 同时在“开场”后插入新段落。同步后展开内部状态，找到已经不可见但仍然存在的墓碑锚点。
+
+### 挑战三：破坏网络
+
+连续修改多次，反转队列，再重复第一条消息。只要最终消息能够到达，正确的 merge 不应该因为乱序和重复而改变结论。
+
+### 挑战四：选择性 Undo
+
+A 修改标题并同步给 B；B 再添加标签；然后 A 撤销自己的标题修改并再次同步。最终 B 的标签必须保留，因为 A 的 Undo 不应该回滚 B 的操作。
+
+## 实战完成标准
+
+当你能解释下面这条链路时，这个实战就算完成：
+
+```text
+本地修改
+→ 生成带身份的 CRDT 状态
+→ 进入不可靠网络
+→ 接收方按字段 merge
+→ Register / Set / Sequence 各自处理冲突
+→ Undo 作为新的本地意图继续同步
+→ 两份文档最终收敛
+```
+
+下一步再接入 Yjs 时，Yjs 替你解决的是工业级编码、增量同步、事务、Undo 和存储；前六章与这个实战解释的是它为什么能够工作。
