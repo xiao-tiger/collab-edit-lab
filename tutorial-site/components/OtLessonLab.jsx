@@ -5,8 +5,8 @@ const node = (doc, meta) => ({ doc, meta });
 const packet = (lane, from, to, label, status = '等待投递') => ({ lane, from, to, label, status });
 
 const LESSONS = {
-  s0: {
-    eyebrow: 'Stage 0 · 全量广播',
+  o1: {
+    eyebrow: 'O1 · 全量广播',
     question: 'A、B 同时修改一份项目周报，为什么每次发送整篇文档会丢掉一个人的内容？',
     variantLabel: '服务端先收到',
     variants: [{ id: 'a', label: 'A 的全文' }, { id: 'b', label: 'B 的全文' }],
@@ -30,8 +30,8 @@ const LESSONS = {
       ],
     },
   },
-  s1: {
-    eyebrow: 'Stage 1 · 操作化',
+  o2: {
+    eyebrow: 'O2 · 操作化',
     question: '已经把修改变成 insert/delete，为什么并发时还是会删除错误的字？',
     variantLabel: '场景',
     variants: [{ id: 'drift', label: '插入导致坐标漂移' }, { id: 'safe', label: '没有并发时正常' }],
@@ -55,8 +55,8 @@ const LESSONS = {
       ],
     },
   },
-  s2: {
-    eyebrow: 'Stage 2 · 版本检测',
+  o3: {
+    eyebrow: 'O3 · 版本检测',
     question: '服务端怎样知道一个操作的 pos 已经过期，而不是继续静默执行？',
     variantLabel: '场景',
     variants: [{ id: 'reject', label: '并发后拒绝' }, { id: 'normal', label: '版本匹配' }],
@@ -83,8 +83,8 @@ const LESSONS = {
       ],
     },
   },
-  s3: {
-    eyebrow: 'Stage 3 · Transform',
+  o4: {
+    eyebrow: 'O4 · Transform',
     question: '服务端已经发现 B 的坐标过期，能不能修正坐标后继续接受，而不是丢掉编辑？',
     variantLabel: 'transform 场景',
     variants: [{ id: 'shift', label: '插入 × 删除' }, { id: 'same', label: '同位置插入' }],
@@ -110,8 +110,8 @@ const LESSONS = {
       ],
     },
   },
-  s4: {
-    eyebrow: 'Stage 4 · 客户端状态',
+  o5: {
+    eyebrow: 'O5 · 客户端状态',
     question: '本地输入已经提前显示，远端操作到达时，pending、buffer 和光标怎样一起修正？',
     variantLabel: '观察对象',
     variants: [{ id: 'pending', label: 'pending / buffer' }, { id: 'cursor', label: '远端光标' }],
@@ -137,8 +137,8 @@ const LESSONS = {
       ],
     },
   },
-  s5: {
-    eyebrow: 'Stage 5 · 快照与 Undo',
+  o6: {
+    eyebrow: 'O6 · 快照与 Undo',
     question: 'history 不能无限增长，Undo 又不能回退整篇文档，生产系统怎样处理？',
     variantLabel: '工程场景',
     variants: [{ id: 'undo', label: '选择性 Undo' }, { id: 'snapshot', label: '快照与 resync' }],

@@ -1,6 +1,6 @@
 import OtLessonLab from '../components/OtLessonLab'
 
-# Stage 5 · History 不能无限增长，Undo 不能回退全文
+# O6 · History 不能无限增长，Undo 不能回退全文
 
 一个长期运行的文档会产生两个工程问题：
 
@@ -11,7 +11,7 @@ import OtLessonLab from '../components/OtLessonLab'
 
 先演示 A 撤销自己的插入但保留 B 的“已审”，再切换到快照场景，观察太旧的操作为什么只能 resync。
 
-<OtLessonLab lesson="s5" />
+<OtLessonLab lesson="o6" />
 
 ## Undo 是一条新的操作
 
@@ -60,12 +60,12 @@ applyAsNewOperation(undoOp)
 ## 六章回顾
 
 ```text
-Stage 0：全文覆盖会丢修改
-Stage 1：操作坐标会漂移
-Stage 2：rev/baseRev 发现过期
-Stage 3：transform 修正旧坐标
-Stage 4：pending/buffer 保持客户端一致
-Stage 5：快照与 selective Undo 走向工程化
+O1：全文覆盖会丢修改
+O2：操作坐标会漂移
+O3：rev/baseRev 发现过期
+O4：transform 修正旧坐标
+O5：pending/buffer 保持客户端一致
+O6：快照与 selective Undo 走向工程化
 ```
 
 下一步不要只看生产清单。进入整合实战，自由控制 A、服务端、B 的操作与消息顺序，亲手完成一次完整 OT 协同流程。

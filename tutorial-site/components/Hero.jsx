@@ -8,12 +8,12 @@ import styles from './Hero.module.css';
 
 /* ---------- 阶段地图数据 ---------- */
 const OT_STAGES = [
-  { href: '/stage0', num: '00', title: '全量广播', desc: '最笨的同步：亲手复现「互相覆盖」' },
-  { href: '/stage1', num: '01', title: '操作化', desc: 'insert / delete，意图登场' },
-  { href: '/stage2', num: '02', title: '版本定序', desc: 'rev + baseRev，冲突可检测' },
-  { href: '/stage3', num: '03', title: 'transform', desc: 'OT 心脏，可视化逐拍播放' },
-  { href: '/stage4', num: '04', title: '客户端状态', desc: 'pending / buffer、远端操作与光标' },
-  { href: '/stage5', num: '05', title: '快照与 Undo', desc: 'history 截断 / resync / 选择性撤销' },
+  { href: '/ot1', num: 'O1', title: '全量广播', desc: '最笨的同步：亲手复现「互相覆盖」' },
+  { href: '/ot2', num: 'O2', title: '操作化', desc: 'insert / delete，意图登场' },
+  { href: '/ot3', num: 'O3', title: '版本定序', desc: 'rev + baseRev，冲突可检测' },
+  { href: '/ot4', num: 'O4', title: 'transform', desc: 'OT 心脏，可视化逐拍播放' },
+  { href: '/ot5', num: 'O5', title: '客户端状态', desc: 'pending / buffer、远端操作与光标' },
+  { href: '/ot6', num: 'O6', title: '快照与 Undo', desc: 'history 截断 / resync / 选择性撤销' },
   { href: '/ot-practice', num: 'LAB', title: 'Mini Docs 实战', desc: '完整运行 rev、history、transform、Undo 与 resync' },
 ];
 const CRDT_STAGES = [
@@ -141,7 +141,7 @@ export default function Hero() {
           一步步把它们亲手实现出来，每一步都有可以上手玩的 Demo。
         </p>
         <div className={styles.ctas}>
-          <Link href="/stage0" className={styles.ctaPrimary}>开始学习之旅 →</Link>
+          <Link href="/ot1" className={styles.ctaPrimary}>开始学习之旅 →</Link>
           <a href="#routes" className={styles.ctaGhost}>先看看两条路线 ↓</a>
         </div>
         <div className={styles.stats}>
@@ -177,7 +177,7 @@ export default function Hero() {
               <li>快照、resync 与协同 Undo</li>
               <li>整合实战：控制完整 OT 消息流</li>
             </ol>
-            <Link href="/stage0" className={styles.routeBtn}>从第 0 章开始 →</Link>
+            <Link href="/ot1" className={styles.routeBtn}>从 O1 开始 →</Link>
           </div>
           <div className={styles.route}>
             <p className={styles.routeKicker}>路线二 · 6 章 + 1 实战</p>

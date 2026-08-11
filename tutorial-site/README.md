@@ -17,12 +17,12 @@ tutorial-site/
 ├── pages/                  # 教程内容（纯文字 + 嵌入组件，改文案只动这里）
 │   ├── _meta.js            # 左侧栏标题与顺序
 │   ├── index.mdx           # 前言：学习地图、OT/CRDT 速览
-│   ├── stage0.mdx          # 全量广播（嵌 OtPlayground policy="fulltext"）
-│   ├── stage1.mdx          # 操作化（policy="op"）
-│   ├── stage2.mdx          # 版本定序（policy="reject"）
-│   ├── stage3.mdx          # transform（嵌 OtVisualizer + policy="transform" 沙盒）
-│   ├── stage4.mdx          # 光标 transform + 远端光标 + 压力测试
-│   ├── stage5.mdx          # 持久化 + 快照截断 + 协同 undo
+│   ├── ot1.mdx             # O1 全量广播（嵌 OtPlayground policy="fulltext"）
+│   ├── ot2.mdx             # O2 操作化（policy="op"）
+│   ├── ot3.mdx             # O3 版本定序（policy="reject"）
+│   ├── ot4.mdx             # O4 transform（嵌 OtVisualizer + policy="transform" 沙盒）
+│   ├── ot5.mdx             # O5 光标 transform + 远端光标 + 压力测试
+│   ├── ot6.mdx             # O6 持久化 + 快照截断 + 协同 undo
 │   ├── crdt1.mdx           # C1 最简 CRDT（嵌 CrdtCounterSim）
 │   ├── crdt2.mdx           # C2 迷你 RGA（嵌 CrdtRgaSim）
 │   ├── crdt3.mdx           # C3 离线合并（CrdtRgaSim offline 模式）

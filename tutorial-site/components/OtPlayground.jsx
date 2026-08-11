@@ -1,10 +1,10 @@
 // ============================================================
 // 协同沙盒组件：浏览器内仿真「客户端 A / 服务端 / 客户端 B」+ 可调网络延迟
 // 四种策略对应四个学习阶段：
-//   fulltext  Stage 0 全量广播（互相覆盖）
-//   op        Stage 1 操作同步（位置漂移）
-//   reject    Stage 2 版本定序（过期拒绝 + 强制重同步）
-//   transform Stage 3+ 完整 OT（修正后接受，收敛）
+//   fulltext  O1 全量广播（互相覆盖）
+//   op        O2 操作同步（位置漂移）
+//   reject    O3 版本定序（过期拒绝 + 强制重同步）
+//   transform O4+ 完整 OT（修正后接受，收敛）
 // 用法（MDX 里）：<OtPlayground policy="fulltext" latency={600}>实验指引…</OtPlayground>
 // ============================================================
 import { useEffect, useRef, useState } from 'react';
@@ -133,7 +133,7 @@ export default function OtPlayground({ policy, latency = 600, children }) {
   function clientRecv(c, msg) {
     const cls = c.id === 'A' ? styles.la : styles.lb;
     if (msg.kind === 'update') {
-      c.el.value = msg.text; // Stage 0：光标被拍飞是故意保留的体感
+      c.el.value = msg.text; // O1：光标被拍飞是故意保留的体感
       log(cls, `${c.id} ← 全量覆盖`);
     } else if (msg.type === 'reject') {
       const lost = (c.pending ? 1 : 0) + c.buffer.length;

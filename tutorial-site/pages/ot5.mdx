@@ -1,7 +1,7 @@
 import OtLessonLab from '../components/OtLessonLab'
 import OtPlayground from '../components/OtPlayground'
 
-# Stage 4 · pending、buffer 和光标怎样修正
+# O5 · pending、buffer 和光标怎样修正
 
 为了让输入没有网络延迟，客户端会立即把本地操作应用到编辑框，再把它作为 `pending` 发给服务端。快速继续输入时，后续操作进入 `buffer`。
 
@@ -15,7 +15,7 @@ import OtPlayground from '../components/OtPlayground'
 
 先观察 pending/buffer，再切换到远端光标。算法区会显示远端操作和本地操作怎样同时更新。
 
-<OtLessonLab lesson="s4" />
+<OtLessonLab lesson="o5" />
 
 ## 为什么只能有一个 pending
 

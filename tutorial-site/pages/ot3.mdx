@@ -1,7 +1,7 @@
 import OtLessonLab from '../components/OtLessonLab'
 import OtPlayground from '../components/OtPlayground'
 
-# Stage 2 · 服务端怎样发现过期坐标
+# O3 · 服务端怎样发现过期坐标
 
 服务端为每个被接受的操作分配递增版本 `rev`。客户端发送操作时，必须声明自己基于哪个版本计算坐标：`baseRev`。
 
@@ -18,7 +18,7 @@ import OtPlayground from '../components/OtPlayground'
 
 默认场景中 A、B 都基于 `rev=0` 操作。A 先被接受后，B 的 `baseRev=0` 与服务端 `rev=1` 不再相等。
 
-<OtLessonLab lesson="s2" />
+<OtLessonLab lesson="o3" />
 
 ## 四个核心状态
 
